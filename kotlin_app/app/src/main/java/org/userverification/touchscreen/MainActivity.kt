@@ -1,6 +1,8 @@
 package org.userverification.touchscreen
 
 import android.Manifest
+import android.annotation.SuppressLint
+import android.content.pm.ActivityInfo
 import android.content.pm.PackageManager
 import android.hardware.Sensor
 import android.hardware.SensorEvent
@@ -13,6 +15,8 @@ import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import androidx.core.view.updateLayoutParams
+
 
 //TODO: Drawing
 //TODO: Saving sensor data while drawing
@@ -30,10 +34,21 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
     private var accData: FloatArray? = null
     private var gyroData: FloatArray? = null
 
+    @SuppressLint("MissingInflatedId")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON) // keeps our screen on while using the app
+        requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+
+        val canvasSize = getCanvasSize()
+
+        val drawingView = findViewById<DrawingView>(R.id.drawing_view)
+
+        drawingView.updateLayoutParams {
+            height = canvasSize
+            width= canvasSize
+        }
 
         // get permissionLauncher to register our required permissions for saving data to our phone storage
         permissionLauncher = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()){ permissions ->
@@ -81,7 +96,6 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
         }
 
         this@MainActivity.findViewById<TextView>(R.id.dataText).text = "Accelerometer: " + accData.contentToString() + "\nGyroscope: " + gyroData.contentToString()
-
     }
 
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {
@@ -112,6 +126,36 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
         if(permissionRequest.isNotEmpty()){
             permissionLauncher.launch(permissionRequest.toTypedArray())
         }
+    }
+
+    private fun getNavigationBarHeight(): Int {
+        val resourceId = resources.getIdentifier("navigation_bar_height", "dimen", "android")
+        if (resourceId > 0) {
+            return resources.getDimensionPixelSize(resourceId)
+        }
+        return 0
+    }
+
+    private fun getStatusBarHeight(): Int {
+        val resourceId = resources.getIdentifier("status_bar_height", "dimen", "android")
+        if (resourceId > 0) {
+            return resources.getDimensionPixelSize(resourceId)
+        }
+        return 0
+    }
+
+    private fun getCanvasSize(): Int {
+        val displayMetrics = resources.displayMetrics
+        val widthPixels = displayMetrics.widthPixels
+        val heightPixels = displayMetrics.heightPixels
+
+        var size = (widthPixels*9)/10
+        val trueHeight = heightPixels-(getNavigationBarHeight()+getStatusBarHeight())
+
+        if ((trueHeight/2)<size) {
+            size = (trueHeight*9)/20
+        }
+        return size
     }
 
 }
