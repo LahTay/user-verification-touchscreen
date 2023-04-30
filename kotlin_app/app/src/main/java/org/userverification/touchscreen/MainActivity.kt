@@ -17,9 +17,8 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.view.updateLayoutParams
 
-
-//TODO: Drawing
-//TODO: Saving sensor data while drawing
+//TODO: Are we using correct sensor data? Save sensor limits to file?
+//TODO: Sensor in runnable 60 hz?
 
 class MainActivity : AppCompatActivity(), SensorEventListener {
 
@@ -34,7 +33,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
     private var accData: FloatArray? = null
     private var gyroData: FloatArray? = null
 
-    @SuppressLint("MissingInflatedId")
+    @SuppressLint("SourceLockedOrientationActivity")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -49,6 +48,8 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
             height = canvasSize
             width= canvasSize
         }
+
+        drawingView.thisViewSize = canvasSize
 
         // get permissionLauncher to register our required permissions for saving data to our phone storage
         permissionLauncher = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()){ permissions ->
@@ -69,7 +70,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
             gyroscope = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE)
         } else {
             // missing sensors - we could also close the app here
-            this@MainActivity.findViewById<TextView>(R.id.dataText).text = "Missing sensors!"
+            this@MainActivity.findViewById<TextView>(R.id.dataText).text = getString(R.string.missing_sensors)
         }
 
     }
@@ -91,11 +92,12 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
         // get values from our sensors and display them - we get our data continuously as it changes
         if (event.sensor == accelerometer) {
             accData = event.values
+            findViewById<DrawingView>(R.id.drawing_view).accSensorData = event.values
         } else if (event.sensor == gyroscope) {
             gyroData = event.values
+            findViewById<DrawingView>(R.id.drawing_view).gyroSensorData = event.values
         }
 
-        this@MainActivity.findViewById<TextView>(R.id.dataText).text = "Accelerometer: " + accData.contentToString() + "\nGyroscope: " + gyroData.contentToString()
     }
 
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {
@@ -128,16 +130,9 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
         }
     }
 
-    private fun getNavigationBarHeight(): Int {
-        val resourceId = resources.getIdentifier("navigation_bar_height", "dimen", "android")
-        if (resourceId > 0) {
-            return resources.getDimensionPixelSize(resourceId)
-        }
-        return 0
-    }
-
-    private fun getStatusBarHeight(): Int {
-        val resourceId = resources.getIdentifier("status_bar_height", "dimen", "android")
+    @SuppressLint("DiscouragedApi")
+    private fun getSystemDimension(name: String): Int {
+        val resourceId = resources.getIdentifier(name, "dimen", "android")
         if (resourceId > 0) {
             return resources.getDimensionPixelSize(resourceId)
         }
@@ -148,9 +143,11 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
         val displayMetrics = resources.displayMetrics
         val widthPixels = displayMetrics.widthPixels
         val heightPixels = displayMetrics.heightPixels
+        val navigationBarHeight = getSystemDimension("navigation_bar_height")
+        val statusBarHeight = getSystemDimension("status_bar_height")
 
         var size = (widthPixels*9)/10
-        val trueHeight = heightPixels-(getNavigationBarHeight()+getStatusBarHeight())
+        val trueHeight = heightPixels-(navigationBarHeight+statusBarHeight)
 
         if ((trueHeight/2)<size) {
             size = (trueHeight*9)/20
