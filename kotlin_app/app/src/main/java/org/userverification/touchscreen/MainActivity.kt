@@ -17,8 +17,10 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.core.view.updateLayoutParams
 
-//TODO: Are we using correct sensor data? Save sensor limits to file?
+//TODO: Are we using correct sensor data?
+//TODO: Save sensor limits to file?
 //TODO: Sensor in runnable 60 hz?
+//TODO: Graphic makeover?
 
 class MainActivity : AppCompatActivity(), SensorEventListener {
 
@@ -68,6 +70,10 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
             // get our sensors
             accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
             gyroscope = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE)
+
+            drawingView.accProperties.add(SensorProperties(accelerometer!!.maximumRange, accelerometer!!.resolution, accelerometer!!.minDelay, accelerometer!!.maxDelay))
+            drawingView.gyroProperties.add(SensorProperties(gyroscope!!.maximumRange, gyroscope!!.resolution, gyroscope!!.minDelay, gyroscope!!.maxDelay))
+
         } else {
             // missing sensors - we could also close the app here
             this@MainActivity.findViewById<TextView>(R.id.dataText).text = getString(R.string.missing_sensors)

@@ -22,9 +22,19 @@ data class PatternData(
     val size: Int,
     val gyro: ArrayList<FloatArray>,
     val acc: ArrayList<FloatArray>,
+    val gProperties: MutableList<SensorProperties>,
+    val aProperties: MutableList<SensorProperties>,
     val x: ArrayList<Float>,
     val y: ArrayList<Float>,
-    val time: ArrayList<Long>
+    val time: ArrayList<Long>,
+    val rawTime: ArrayList<Long>
+)
+
+data class SensorProperties(
+    val resolution: Float,
+    val maxRange: Float,
+    val minDelay: Int,
+    val maxDelay: Int,
 )
 
 class DrawingView(context: Context, attrs: AttributeSet) : View(context, attrs) {
@@ -65,13 +75,20 @@ class DrawingView(context: Context, attrs: AttributeSet) : View(context, attrs) 
     var accSensorData: FloatArray? = null // Used for storing newest sensor data
     var gyroSensorData: FloatArray? = null
 
+    var accProperties = mutableListOf<SensorProperties>()
+    var gyroProperties = mutableListOf<SensorProperties>()
+
     private var xDrawingData = ArrayList<Float>()
     private var yDrawingData = ArrayList<Float>()
 
     private var accList = ArrayList<FloatArray>()
     private var gyroList = ArrayList<FloatArray>()
 
-    private var timeList = ArrayList<Long>()
+    private var timeFirst = 0L
+    private var timeSecond = 0L
+
+    private var elapsedTimeList = ArrayList<Long>()
+    private var rawTimeList = ArrayList<Long>()
 
     var thisViewSize: Int = 0
 
@@ -105,10 +122,15 @@ class DrawingView(context: Context, attrs: AttributeSet) : View(context, attrs) 
 
     private fun touchStart() {
         changeDataText("Drawing: YES", "#006400")
+        timeFirst = System.nanoTime()
         path.reset()
         path.moveTo(motionTouchEventX, motionTouchEventY)
         currentX = motionTouchEventX
         currentY = motionTouchEventY
+
+        addData()
+        elapsedTimeList.add(0L)
+        rawTimeList.add(System.nanoTime())
 
         if (hasPreviousDrawing) { // If there is a previous drawing, clear the canvas
             extraCanvas.drawColor(backgroundColor)
@@ -120,13 +142,12 @@ class DrawingView(context: Context, attrs: AttributeSet) : View(context, attrs) 
 
     private fun touchMove() {
 
-        xDrawingData.add(motionTouchEventX)
-        yDrawingData.add(motionTouchEventY)
+        addData()
 
-        accList.add(accSensorData!!)
-        gyroList.add(gyroSensorData!!)
-
-        timeList.add(System.currentTimeMillis())
+        timeSecond = System.nanoTime()
+        elapsedTimeList.add(timeSecond - timeFirst)
+        timeFirst = System.nanoTime()
+        rawTimeList.add(timeFirst)
 
         val dx = abs(motionTouchEventX - currentX)
         val dy = abs(motionTouchEventY - currentY)
@@ -152,9 +173,12 @@ class DrawingView(context: Context, attrs: AttributeSet) : View(context, attrs) 
             thisViewSize,
             gyroList,
             accList,
+            gyroProperties,
+            accProperties,
             xDrawingData,
             yDrawingData,
-            timeList
+            elapsedTimeList,
+            rawTimeList
         )
 
         val dateString = Calendar.getInstance().time.toString()
@@ -172,13 +196,22 @@ class DrawingView(context: Context, attrs: AttributeSet) : View(context, attrs) 
         yDrawingData.clear()
         accList.clear()
         gyroList.clear()
-        timeList.clear()
+        elapsedTimeList.clear()
+        rawTimeList.clear()
 
     }
 
     private fun changeDataText(text: String, colour: String) {
         this@DrawingView.rootView.findViewById<TextView>(R.id.dataText).text = text
         this@DrawingView.rootView.findViewById<TextView>(R.id.dataText).setTextColor(Color.parseColor(colour))
+    }
+
+    private fun addData() {
+        xDrawingData.add(motionTouchEventX)
+        yDrawingData.add(motionTouchEventY)
+
+        accList.add(accSensorData!!)
+        gyroList.add(gyroSensorData!!)
     }
 
 }
