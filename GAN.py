@@ -32,7 +32,7 @@ def make_generator_model(x=100,y=100,z=3):
     #magic
     # TODO: make better model simpler to understand
     model = tf.keras.Sequential()
-    model.add(layers.Dense(int(x/4)*int(y/4)*64, use_bias=False, input_shape=(100,)))
+    model.add(layers.Dense(int(x/4)*int(y/4)*64, use_bias=False, input_shape=(100,),trainable=False))
     model.add(layers.BatchNormalization())
     model.add(layers.LeakyReLU())
 
@@ -161,8 +161,12 @@ def generate_and_save_images(model, epoch, test_input):
 
 
 if __name__ == '__main__':
-    train_images = random_data(2000)
-    BUFFER_SIZE = 2000
+    train_images2 = random_data(1)
+    test = list(np.random.choice(1,256))
+    train_images = []
+    for i in test:
+        train_images.append(train_images2[i])
+    BUFFER_SIZE = 256
     BATCH_SIZE = 128
     train_dataset = tf.data.Dataset.from_tensor_slices(train_images).shuffle(BUFFER_SIZE).batch(BATCH_SIZE)
     generator = make_generator_model()
@@ -188,7 +192,7 @@ if __name__ == '__main__':
                                      discriminator=discriminator)
     checkpoint.restore(tf.train.latest_checkpoint(checkpoint_dir))
 
-    EPOCHS = 50
+    EPOCHS = 150
     noise_dim = 100
     num_examples_to_generate = 4
 
