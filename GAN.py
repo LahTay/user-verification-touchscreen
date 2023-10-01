@@ -13,11 +13,6 @@ from multiprocessing import Pool
 #allows for computing using tensor cores
 tf.keras.mixed_precision.set_global_policy('mixed_float16')
 
-# mnist for testing
-# (train_images, train_labels), (_, _) = tf.keras.datasets.mnist.load_data()
-# train_images = (train_images[0:7500].astype('float16') - 127.5) / 127.5
-# train_images = np.expand_dims(train_images, axis=-1)
-# train_images = tf.image.resize(train_images, [140,140])
 @timebudget
 def run_generations(operation, inputs, pool):
     return pool.map(operation, inputs)
@@ -29,10 +24,8 @@ def random_data(x):
     return out
 
 def make_generator_model(x=100,y=100,z=3):
-    #magic
-    # TODO: make better model simpler to understand
     model = tf.keras.Sequential()
-    model.add(layers.Dense(int(x/4)*int(y/4)*64, use_bias=False, input_shape=(100,),trainable=False))
+    model.add(layers.Dense(int(x/4)*int(y/4)*64, use_bias=False, input_shape=(noise_dim,),trainable=False))
     model.add(layers.BatchNormalization())
     model.add(layers.LeakyReLU())
 
@@ -54,35 +47,7 @@ def make_generator_model(x=100,y=100,z=3):
     model.summary()
     return model
 
-def alt_make_generator_model():
-    #magic
-    # TODO: make better model simpler to understand
-    model = tf.keras.Sequential()
-    model.add(layers.Dense(35*35*64, use_bias=False, input_shape=(100,)))
-    model.add(layers.BatchNormalization())
-    model.add(layers.LeakyReLU())
-
-    model.add(layers.Reshape((35, 35, 64)))
-    assert model.output_shape == (None, 35, 35, 64)
-
-    model.add(layers.Conv2DTranspose(64, (5, 5), strides=(1, 1), padding='same', use_bias=False))
-    assert model.output_shape == (None, 35, 35, 64)
-    model.add(layers.BatchNormalization())
-    model.add(layers.LeakyReLU())
-
-    model.add(layers.Conv2DTranspose(32, (5, 5), strides=(2, 2), padding='same', use_bias=False))
-    assert model.output_shape == (None, 70, 70, 32)
-    model.add(layers.BatchNormalization())
-    model.add(layers.LeakyReLU())
-
-    model.add(layers.Conv2DTranspose(1, (5, 5), strides=(2, 2), padding='same', use_bias=False, activation='tanh'))
-    assert model.output_shape == (None, 140, 140, 1)
-    model.summary()
-    return model
-
 def make_discriminator_model():
-    # magic 2
-    # TODO: make better model simpler to understand
     model = tf.keras.Sequential()
     model.add(layers.Conv2D(64, (5, 5), strides=(2, 2), padding='same',
                                      input_shape=[100, 100, 3]))
@@ -161,12 +126,14 @@ def generate_and_save_images(model, epoch, test_input):
 
 
 if __name__ == '__main__':
-    train_images2 = random_data(1)
-    test = list(np.random.choice(1,256))
+    num_generated = 1
+    num_elements = 256
+    train_images2 = random_data(num_generated)
+    test = list(np.random.choice(num_generated,num_elements))
     train_images = []
     for i in test:
         train_images.append(train_images2[i])
-    BUFFER_SIZE = 256
+    BUFFER_SIZE = num_elements
     BATCH_SIZE = 128
     train_dataset = tf.data.Dataset.from_tensor_slices(train_images).shuffle(BUFFER_SIZE).batch(BATCH_SIZE)
     generator = make_generator_model()

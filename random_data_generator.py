@@ -10,8 +10,6 @@ def generate(length):
     acc = [list(gen.normal(0,3,3))]
     x = [gen.integers(0,size)]
     y = [gen.integers(0,size)]
-    fillx = gen.uniform(0.5,1)
-    filly = gen.uniform(0.5, 1)
     for i in range(length-1):
         accn = list(gen.normal(0,3,3))
         acc.append(accn)
