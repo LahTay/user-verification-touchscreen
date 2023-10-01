@@ -1,4 +1,4 @@
-name: Checks
+name: "Python Check"
 on: [pull_request]
 
 jobs:
@@ -7,11 +7,23 @@ jobs:
     name: Checks
     steps:
     - uses: actions/checkout@v2
+      with:
+        ref: ${{ github.head_ref }}
+        token: ${{ secrets.ACTION_COMMIT }}
+        fetch-depth: 0
     - uses: actions/setup-python@v2
       with:
         python-version: 3.x
     - run: pip install --upgrade pip
-    - run: pip install black==23.9.1 pylint==v2.17.7 mypy==v1.5.1
+    - run: pip install black==23.9.1 pylint==2.17.7 mypy==1.5.1
     - run: black $(git ls-files '*.py')
     - run: pylint --disable=all --enable=unused-import $(git ls-files '*.py')
     - run: mypy --strict $(git ls-files '*.py')
+    
+    - name: Commit changes
+      uses: EndBug/add-and-commit@v9
+      with:
+        author_name: github-actions
+        author_email: github-actions[bot]@users.noreply.github.com
+        message: '[github-actions] Add refactoring changes'
+        add: '*.py'
