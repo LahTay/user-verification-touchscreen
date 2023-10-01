@@ -1,6 +1,6 @@
 import json
 import matplotlib.pyplot as plt
-
+import numpy as np
 
 def open_file(file_name: str):
     data = []
@@ -11,7 +11,7 @@ def open_file(file_name: str):
 
 if __name__ == "__main__":
 
-    file_data = open_file("data.json")
+    file_data = open_file("data1.json")
 
     print(file_data.keys())
 
@@ -30,6 +30,8 @@ if __name__ == "__main__":
     Czas na preprocessing.
 
     """
+    print(len(file_data["gyro"]))
+    print(len(np.unique(file_data["acc"], axis=0)))
 
     plt.xlim([0,file_data["size"]])
     plt.ylim([0,file_data["size"]])

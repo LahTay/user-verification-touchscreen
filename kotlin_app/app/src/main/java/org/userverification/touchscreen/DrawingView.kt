@@ -72,8 +72,8 @@ class DrawingView(context: Context, attrs: AttributeSet) : View(context, attrs) 
 
     private val mapper = jacksonObjectMapper()
 
-    var accSensorData: FloatArray? = null // Used for storing newest sensor data
-    var gyroSensorData: FloatArray? = null
+    var accSensorData: FloatArray = floatArrayOf(0.0f, 0.0f, 0.0f) // Used for storing newest sensor data
+    var gyroSensorData: FloatArray = floatArrayOf(0.0f, 0.0f, 0.0f)
 
     var accProperties = mutableListOf<SensorProperties>()
     var gyroProperties = mutableListOf<SensorProperties>()
@@ -209,9 +209,10 @@ class DrawingView(context: Context, attrs: AttributeSet) : View(context, attrs) 
     private fun addData() {
         xDrawingData.add(motionTouchEventX)
         yDrawingData.add(motionTouchEventY)
+        //this@DrawingView.rootView.findViewById<TextView>(R.id.testView).text = accSensorData.copyOf().contentToString()
+        accList.add(accSensorData.copyOf())
+        gyroList.add(gyroSensorData.copyOf())
 
-        accList.add(accSensorData!!)
-        gyroList.add(gyroSensorData!!)
     }
 
 }

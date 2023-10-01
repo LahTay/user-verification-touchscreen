@@ -60,4 +60,14 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
+    <TextView
+        android:id="@+id/testView"
+        android:layout_width="195dp"
+        android:layout_height="30dp"
+        app:layout_constraintBottom_toTopOf="@+id/textFileName"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="@+id/guidelineBottom"
+        tools:visibility="visible" />
+
 </androidx.constraintlayout.widget.ConstraintLayout>

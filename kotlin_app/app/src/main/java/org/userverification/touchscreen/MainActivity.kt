@@ -18,7 +18,6 @@ import androidx.core.content.ContextCompat
 import androidx.core.view.updateLayoutParams
 
 //TODO: Are we using correct sensor data?
-//TODO: Save sensor limits to file?
 //TODO: Sensor in runnable 60 hz?
 //TODO: Graphic makeover?
 
@@ -32,8 +31,9 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
     private var accelerometer: Sensor? = null
     private var gyroscope: Sensor? = null
 
-    private var accData: FloatArray? = null
-    private var gyroData: FloatArray? = null
+    //private var accData: FloatArray? = null
+    //private var gyroData: FloatArray? = null
+    private lateinit var drawingView: DrawingView
 
     @SuppressLint("SourceLockedOrientationActivity")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -44,7 +44,8 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
 
         val canvasSize = getCanvasSize()
 
-        val drawingView = findViewById<DrawingView>(R.id.drawing_view)
+        drawingView = findViewById<DrawingView>(R.id.drawing_view)
+
 
         drawingView.updateLayoutParams {
             height = canvasSize
@@ -84,8 +85,8 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
     override fun onResume() {
         super.onResume()
         // register the sensor listeners on resume
-        sensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_NORMAL)
-        sensorManager.registerListener(this, gyroscope, SensorManager.SENSOR_DELAY_NORMAL)
+        sensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_FASTEST)
+        sensorManager.registerListener(this, gyroscope, SensorManager.SENSOR_DELAY_FASTEST)
     }
 
     override fun onPause() {
@@ -97,13 +98,13 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
     override fun onSensorChanged(event: SensorEvent) {
         // get values from our sensors and display them - we get our data continuously as it changes
         if (event.sensor == accelerometer) {
-            accData = event.values
-            findViewById<DrawingView>(R.id.drawing_view).accSensorData = event.values
+            //accData = event.values
+            drawingView.accSensorData = event.values
         } else if (event.sensor == gyroscope) {
-            gyroData = event.values
-            findViewById<DrawingView>(R.id.drawing_view).gyroSensorData = event.values
+            //gyroData = event.values
+            drawingView.gyroSensorData = event.values
         }
-
+        //this@MainActivity.findViewById<TextView>(R.id.testView).text = "Accelerometer: " + accData.contentToString() +"\nGyroscope: " + gyroData.contentToString()
     }
 
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {
