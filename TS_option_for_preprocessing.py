@@ -55,17 +55,17 @@ def read_data(limit):
         XX.append(points[0])
         YY.append(points[1])
         ZZ.append(points[2])
-    # ax = plt.figure().add_subplot(projection='3d')
-    # ax.plot(X,Y,Z)
+    ax = plt.figure().add_subplot(projection='3d')
+    ax.plot(X,Y,Z)
     XX=np.hstack(XX)
     YY=np.hstack(YY)
     ZZ=np.hstack(ZZ)
     ZZ = ZZ-np.min(ZZ)
     ZZ = ZZ/(np.max(ZZ)/limit)
-    # plt.show()
-    # ax = plt.figure().add_subplot(projection='3d')
-    # ax.plot(XX,YY,ZZ)
-    # plt.show()
+    plt.show()
+    ax = plt.figure().add_subplot(projection='3d')
+    ax.plot(XX,YY,ZZ)
+    plt.show()
     return XX,YY,ZZ
 
 def normalize(X,Y,Z,sizelimit):
@@ -100,8 +100,8 @@ def normalize(X,Y,Z,sizelimit):
     # axs[1, 1].pcolor(P3)
     # axs[1, 1].set_title('P3')
     # plt.show()
-    # plt.pcolor(out)
-    # plt.show()
+    plt.pcolor(out)
+    plt.show()
     return out
 
 def normalize2(X,Y,Z,sizelimit):
@@ -131,8 +131,8 @@ def normalize2(X,Y,Z,sizelimit):
     # axs[1, 0].pcolor(P2)
     # axs[1, 0].set_title('P2')
     # plt.show()
-    # plt.imshow(out)
-    # plt.show()
+    plt.imshow(out)
+    plt.show()
     return out
 
 def generate(i):
