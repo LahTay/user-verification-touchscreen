@@ -2,6 +2,7 @@ import json
 import matplotlib.pyplot as plt
 import numpy as np
 
+
 def open_file(file_name: str):
     data = []
     with open(file_name) as f:
@@ -10,7 +11,6 @@ def open_file(file_name: str):
 
 
 if __name__ == "__main__":
-
     file_data = open_file("data1.json")
 
     print(file_data.keys())
@@ -33,7 +33,7 @@ if __name__ == "__main__":
     print(len(file_data["gyro"]))
     print(len(np.unique(file_data["acc"], axis=0)))
 
-    plt.xlim([0,file_data["size"]])
-    plt.ylim([0,file_data["size"]])
-    plt.plot(file_data["x"],file_data["y"])
+    plt.xlim([0, file_data["size"]])
+    plt.ylim([0, file_data["size"]])
+    plt.plot(file_data["x"], file_data["y"])
     plt.show()
