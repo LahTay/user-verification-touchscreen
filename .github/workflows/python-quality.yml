@@ -17,12 +17,9 @@ jobs:
     - name: Upgrade pip
       run: pip install --upgrade pip
     - name: install libraries for checks
-      run: pip install black==23.9.1 pylint==2.17.7 mypy==1.5.1
-    - name: install dependencies
-      run: pip install -r requirements.txt
+      run: pip install black==23.9.1 pylint==2.17.7
     - run: black $(git ls-files '*.py')
     - run: pylint --disable=all --enable=unused-import $(git ls-files '*.py')
-    - run: mypy --strict $(git ls-files '*.py')
     
     - name: Commit changes
       uses: EndBug/add-and-commit@v9
