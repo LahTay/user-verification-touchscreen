@@ -14,8 +14,12 @@ jobs:
     - uses: actions/setup-python@v2
       with:
         python-version: 3.x
-    - run: pip install --upgrade pip
-    - run: pip install black==23.9.1 pylint==2.17.7 mypy==1.5.1
+    - name: Upgrade pip
+      run: pip install --upgrade pip
+    - name: install libraries for checks
+      run: pip install black==23.9.1 pylint==2.17.7 mypy==1.5.1
+    - name: install dependencies
+      run: pip install -r requirements.txt
     - run: black $(git ls-files '*.py')
     - run: pylint --disable=all --enable=unused-import $(git ls-files '*.py')
     - run: mypy --strict $(git ls-files '*.py')
