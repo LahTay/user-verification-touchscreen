@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">User Verification Touchscreen</string>
+    <string name="random_data">Random Data</string>
+    <string name="missing_sensors">Missing sensors!</string>
+    <string name="drawing_yes">Drawing: YES</string>
+    <string name="drawing_no">Drawing: NO</string>
+    <string name="missing_file_name">Brak nazwy pliku!</string>
+</resources>
