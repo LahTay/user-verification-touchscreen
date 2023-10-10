@@ -9,6 +9,7 @@ import android.view.View
 import android.view.ViewConfiguration
 import android.widget.TextView
 import android.widget.Toast
+import android.widget.ToggleButton
 import androidx.core.content.res.ResourcesCompat
 import kotlin.math.abs
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
@@ -27,7 +28,10 @@ data class PatternData(
     val x: ArrayList<Float>,
     val y: ArrayList<Float>,
     val time: ArrayList<Long>,
-    val rawTime: ArrayList<Long>
+    val rawTime: ArrayList<Long>,
+    val toggleButton1Info: String,
+    val toggleButton2Info: String,
+    val toggleButton3Info: String
 )
 
 data class SensorProperties(
@@ -89,6 +93,10 @@ class DrawingView(context: Context, attrs: AttributeSet) : View(context, attrs) 
 
     private var elapsedTimeList = ArrayList<Long>()
     private var rawTimeList = ArrayList<Long>()
+
+    private var toggleInfo1 = String()
+    private var toggleInfo2 = String()
+    private var toggleInfo3 = String()
 
     var thisViewSize: Int = 0
 
@@ -168,6 +176,28 @@ class DrawingView(context: Context, attrs: AttributeSet) : View(context, attrs) 
         path.reset()
         changeDataText("Drawing: NO","#880808")
 
+        val toggleButton1  = this@DrawingView.rootView.findViewById<ToggleButton>(R.id.toggleButton)
+        val toggleButton2  = this@DrawingView.rootView.findViewById<ToggleButton>(R.id.toggleButton2)
+        val toggleButton3  = this@DrawingView.rootView.findViewById<ToggleButton>(R.id.toggleButton3)
+
+        toggleInfo1 =  if (toggleButton1.isChecked) {
+            toggleButton1.textOn.toString()
+        } else {
+            toggleButton1.textOff.toString()
+        }
+
+        toggleInfo2 =  if (toggleButton2.isChecked) {
+            toggleButton2.textOn.toString()
+        } else {
+            toggleButton2.textOff.toString()
+        }
+
+        toggleInfo3 =  if (toggleButton3.isChecked) {
+            toggleButton3.textOn.toString()
+        } else {
+            toggleButton3.textOff.toString()
+        }
+
         // Write data
         val pattern = PatternData(
             thisViewSize,
@@ -178,7 +208,10 @@ class DrawingView(context: Context, attrs: AttributeSet) : View(context, attrs) 
             xDrawingData,
             yDrawingData,
             elapsedTimeList,
-            rawTimeList
+            rawTimeList,
+            toggleInfo1,
+            toggleInfo2,
+            toggleInfo3
         )
 
         val dateString = Calendar.getInstance().time.toString()
@@ -187,6 +220,7 @@ class DrawingView(context: Context, attrs: AttributeSet) : View(context, attrs) 
         if (sampleName != "file name") {
             val saveDir = "$currentDirectory/$sampleName$dateString.json"
             val patternJson = mapper.writeValue(File(saveDir),pattern)
+            println("saved file")
         } else {
             Toast.makeText(this.context, "Brak nazwy pliku!", Toast.LENGTH_SHORT).show()
         }

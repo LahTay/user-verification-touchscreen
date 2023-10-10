@@ -12,9 +12,9 @@
         android:id="@+id/dataText"
         android:layout_width="0dp"
         android:layout_height="0dp"
+        android:gravity="center"
         android:text="Drawing: NO"
         android:textAlignment="center"
-        android:gravity="center"
         android:textColor="#880808"
         android:textSize="48sp"
         app:layout_constraintBottom_toTopOf="@+id/guidelineTop"
@@ -40,15 +40,17 @@
         android:id="@+id/textFileName"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:autofillHints="text"
         android:ems="10"
         android:inputType="textPersonName"
         android:minHeight="48dp"
         android:text="file name"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.497"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="@+id/guidelineBottom"
-        android:autofillHints="text"
+        app:layout_constraintVertical_bias="0.502"
         tools:ignore="LabelFor" />
 
     <org.userverification.touchscreen.DrawingView
@@ -57,17 +59,49 @@
         android:layout_height="731dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.456" />
 
-    <TextView
-        android:id="@+id/testView"
-        android:layout_width="195dp"
-        android:layout_height="30dp"
+    <ToggleButton
+        android:id="@+id/toggleButton"
+        android:layout_width="wrap_content"
+        android:layout_height="48dp"
+        android:layout_marginStart="-270dp"
+        android:layout_marginBottom="10dp"
+        android:rotation="-23"
+        android:text="button1"
+        android:textOff="original"
+        android:textOn="fake"
         app:layout_constraintBottom_toTopOf="@+id/textFileName"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="@+id/guidelineBottom"
-        tools:visibility="visible" />
+        app:layout_constraintStart_toEndOf="@id/textFileName" />
+
+    <ToggleButton
+        android:id="@+id/toggleButton2"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="33dp"
+        android:layout_marginEnd="33dp"
+        android:layout_marginBottom="10dp"
+        android:text="lying"
+        android:textOff="sit"
+        android:textOn="stand"
+        app:layout_constraintBottom_toTopOf="@+id/textFileName"
+        app:layout_constraintEnd_toStartOf="@+id/toggleButton3"
+        app:layout_constraintStart_toEndOf="@+id/toggleButton" />
+
+    <ToggleButton
+        android:id="@+id/toggleButton3"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="33dp"
+        android:layout_marginBottom="10dp"
+        android:rotation="23"
+        android:text="original"
+        android:textOff="lay"
+        android:textOn="nothing"
+        app:layout_constraintBottom_toTopOf="@+id/textFileName"
+        app:layout_constraintStart_toEndOf="@+id/toggleButton2" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
