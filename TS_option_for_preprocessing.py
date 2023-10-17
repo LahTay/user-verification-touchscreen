@@ -3,7 +3,7 @@ from scipy.spatial.transform import Rotation as R
 import matplotlib.pyplot as plt
 import json
 import random_data_generator
-
+debug = False
 def open_file(file_name: str):
     data = []
     with open(file_name) as f:
@@ -26,15 +26,19 @@ gproperties - lista właściwości żyroskopu, kolejno [resolution, maxRange, mi
 Czas na preprocessing.
 
 """
-def read_data(limit):
+def read_data(limit,filename=""):
 
-    # file_data = open_file(filename)
+    #file_data = open_file(filename)
     #
     # print(file_data.keys())
     file_data = random_data_generator.generate(np.random.randint(300,900))
     XX=[]
     YY=[]
     ZZ=[]
+    # x = file_data['x']
+    # y = file_data['y']
+    # file_data['x'] = list(np.array(file_data['x'])-min(x))
+    # file_data['y'] = list(np.array(file_data['y']) - min(y))
     rot = np.array([0,0,0])
     mov = np.array([0,0,0])
     acc0 = np.array(file_data['acc'][0])
@@ -55,17 +59,24 @@ def read_data(limit):
         XX.append(points[0])
         YY.append(points[1])
         ZZ.append(points[2])
-    ax = plt.figure().add_subplot(projection='3d')
-    ax.plot(X,Y,Z)
+    if debug:
+        plt.plot(X,Y)
+        plt.show()
     XX=np.hstack(XX)
+    XX = XX-np.min(XX)
+    #XX = XX / (np.max(XX) / (limit*4))
+
     YY=np.hstack(YY)
+    YY = YY-np.min(YY)
+    #YY = YY / (np.max(YY) / (limit*4))
+
     ZZ=np.hstack(ZZ)
     ZZ = ZZ-np.min(ZZ)
-    ZZ = ZZ/(np.max(ZZ)/limit)
-    plt.show()
-    ax = plt.figure().add_subplot(projection='3d')
-    ax.plot(XX,YY,ZZ)
-    plt.show()
+    ZZ = ZZ/(np.max(ZZ)/(limit))
+    if debug:
+        ax = plt.figure().add_subplot(projection='3d')
+        ax.plot(XX,YY,ZZ)
+        plt.show()
     return XX,YY,ZZ
 
 def normalize(X,Y,Z,sizelimit):
@@ -90,8 +101,9 @@ def normalize(X,Y,Z,sizelimit):
     P01 = np.hstack((P0,P1))
     P23 = np.hstack((P2, P3))
     out = np.vstack((P01,P23))
-    plt.pcolor(out)
-    plt.show()
+    if debug:
+        plt.pcolor(out)
+        plt.show()
     return out
 
 def normalize2(X,Y,Z,sizelimit):
@@ -113,12 +125,17 @@ def normalize2(X,Y,Z,sizelimit):
     P0 = P0 / np.max(P0)
     out = np.array((P0,P1,P2))
     out = np.swapaxes(out, 0, 2)
-    plt.imshow(out)
-    plt.show()
+    if debug:
+        plt.imshow(out)
+        plt.show()
     return out
 
-def generate(i):
-    X, Y, Z = read_data(i)
+def generate(i,filename=""):
+    X, Y, Z = read_data(i,filename)
     out = normalize2(X, Y, Z, i)
     return out
+
+# generate(128,"J.adamski.drawing1.real11.json")
+# generate(128,"J.adamski.drawing1.real2.json")
+# generate(128,"J.adamski.drawing1.real3.json")
 
