@@ -42,6 +42,7 @@
         android:layout_height="wrap_content"
         android:autofillHints="text"
         android:ems="10"
+        android:gravity="center"
         android:inputType="textPersonName"
         android:minHeight="48dp"
         android:text="file name"
@@ -53,55 +54,68 @@
         app:layout_constraintVertical_bias="0.502"
         tools:ignore="LabelFor" />
 
+    <!-- android:layout_width="wrap_content" -->
+
     <org.userverification.touchscreen.DrawingView
         android:id="@+id/drawing_view"
         android:layout_width="wrap_content"
-        android:layout_height="731dp"
+        android:layout_height="200dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintHorizontal_bias="1.0"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.456" />
+        app:layout_constraintVertical_bias="0.442" />
 
-    <ToggleButton
-        android:id="@+id/toggleButton"
-        android:layout_width="wrap_content"
-        android:layout_height="48dp"
-        android:layout_marginStart="-270dp"
-        android:layout_marginBottom="10dp"
-        android:rotation="-23"
-        android:text="button1"
-        android:textOff="original"
-        android:textOn="fake"
+    <RadioGroup
+        android:id="@+id/radioGroup1"
+        android:layout_width="100dp"
+        android:layout_height="80dp"
+        android:layout_marginBottom="4dp"
         app:layout_constraintBottom_toTopOf="@+id/textFileName"
-        app:layout_constraintStart_toEndOf="@id/textFileName" />
+        app:layout_constraintEnd_toEndOf="@+id/textFileName">
 
-    <ToggleButton
-        android:id="@+id/toggleButton2"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="33dp"
-        android:layout_marginEnd="33dp"
-        android:layout_marginBottom="10dp"
-        android:text="lying"
-        android:textOff="sit"
-        android:textOn="stand"
-        app:layout_constraintBottom_toTopOf="@+id/textFileName"
-        app:layout_constraintEnd_toStartOf="@+id/toggleButton3"
-        app:layout_constraintStart_toEndOf="@+id/toggleButton" />
+        <RadioButton
+            android:id="@+id/radioButton3"
+            android:layout_width="match_parent"
+            android:layout_height="22dp"
+            android:text="Still"
+            android:checked="true"/>
 
-    <ToggleButton
-        android:id="@+id/toggleButton3"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="33dp"
-        android:layout_marginBottom="10dp"
-        android:rotation="23"
-        android:text="original"
-        android:textOff="lay"
-        android:textOn="nothing"
+        <RadioButton
+            android:id="@+id/radioButton4"
+            android:layout_width="match_parent"
+            android:layout_height="22dp"
+            android:text="Standing" />
+
+        <RadioButton
+            android:id="@+id/radioButton5"
+            android:layout_width="match_parent"
+            android:layout_height="22dp"
+            android:text="Lying" />
+    </RadioGroup>
+
+    <RadioGroup
+        android:id="@+id/radioGroup2"
+        android:layout_width="100dp"
+        android:layout_height="60dp"
+        android:layout_marginBottom="24dp"
         app:layout_constraintBottom_toTopOf="@+id/textFileName"
-        app:layout_constraintStart_toEndOf="@+id/toggleButton2" />
+        app:layout_constraintStart_toStartOf="@+id/textFileName">
+
+        <RadioButton
+            android:id="@+id/radioButton1"
+            android:layout_width="85dp"
+            android:layout_height="22dp"
+            android:text="Fake" />
+
+        <RadioButton
+            android:id="@+id/radioButton2"
+            android:layout_width="85dp"
+            android:layout_height="22dp"
+            android:text="Original"
+            android:checked="true"/>
+    </RadioGroup>
+
 
 </androidx.constraintlayout.widget.ConstraintLayout>

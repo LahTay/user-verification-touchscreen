@@ -4,12 +4,11 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.*
 import android.util.AttributeSet
+import android.util.Log
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewConfiguration
-import android.widget.TextView
-import android.widget.Toast
-import android.widget.ToggleButton
+import android.widget.*
 import androidx.core.content.res.ResourcesCompat
 import kotlin.math.abs
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
@@ -30,8 +29,7 @@ data class PatternData(
     val time: ArrayList<Long>,
     val rawTime: ArrayList<Long>,
     val toggleButton1Info: String,
-    val toggleButton2Info: String,
-    val toggleButton3Info: String
+    val toggleButton2Info: String
 )
 
 data class SensorProperties(
@@ -96,7 +94,6 @@ class DrawingView(context: Context, attrs: AttributeSet) : View(context, attrs) 
 
     private var toggleInfo1 = String()
     private var toggleInfo2 = String()
-    private var toggleInfo3 = String()
 
     var thisViewSize: Int = 0
 
@@ -176,27 +173,47 @@ class DrawingView(context: Context, attrs: AttributeSet) : View(context, attrs) 
         path.reset()
         changeDataText("Drawing: NO","#880808")
 
-        val toggleButton1  = this@DrawingView.rootView.findViewById<ToggleButton>(R.id.toggleButton)
-        val toggleButton2  = this@DrawingView.rootView.findViewById<ToggleButton>(R.id.toggleButton2)
-        val toggleButton3  = this@DrawingView.rootView.findViewById<ToggleButton>(R.id.toggleButton3)
+        val radioGroup1 = this@DrawingView.rootView.findViewById<RadioGroup>(R.id.radioGroup1)
+        val radioButton1 = this@DrawingView.rootView.findViewById<RadioButton>(R.id.radioButton1)
+        val radioButton2 = this@DrawingView.rootView.findViewById<RadioButton>(R.id.radioButton2)
 
-        toggleInfo1 =  if (toggleButton1.isChecked) {
-            toggleButton1.textOn.toString()
+        val radioGroup2 = this@DrawingView.rootView.findViewById<RadioGroup>(R.id.radioGroup2)
+        val radioButton3 = this@DrawingView.rootView.findViewById<RadioButton>(R.id.radioButton3)
+        val radioButton4 = this@DrawingView.rootView.findViewById<RadioButton>(R.id.radioButton4)
+        val radioButton5 = this@DrawingView.rootView.findViewById<RadioButton>(R.id.radioButton5)
+
+        if (radioButton1.isChecked) {
+            toggleInfo1 = radioButton1.text.toString()
+            println("rb1")
+        } else if (radioButton2.isChecked) {
+            toggleInfo1 = radioButton2.text.toString()
+            println("rb2")
         } else {
-            toggleButton1.textOff.toString()
+            toggleInfo1 = "Corupted data"
+            println("error")
         }
 
-        toggleInfo2 =  if (toggleButton2.isChecked) {
-            toggleButton2.textOn.toString()
+        if (radioButton3.isChecked) {
+            toggleInfo2 = radioButton3.text.toString()
+            println("rb3")
+        } else if (radioButton4.isChecked) {
+            toggleInfo2 = radioButton4.text.toString()
+            println("rb4")
+        } else if (radioButton5.isChecked) {
+            toggleInfo2 = radioButton5.text.toString()
+            println("rb5")
         } else {
-            toggleButton2.textOff.toString()
+            toggleInfo2 = "Corupted data"
+            println("error")
         }
 
-        toggleInfo3 =  if (toggleButton3.isChecked) {
-            toggleButton3.textOn.toString()
-        } else {
-            toggleButton3.textOff.toString()
-        }
+
+        println("XDD")
+        println(toggleInfo1)
+        println(toggleInfo2)
+
+
+
 
         // Write data
         val pattern = PatternData(
@@ -210,8 +227,7 @@ class DrawingView(context: Context, attrs: AttributeSet) : View(context, attrs) 
             elapsedTimeList,
             rawTimeList,
             toggleInfo1,
-            toggleInfo2,
-            toggleInfo3
+            toggleInfo2
         )
 
         val dateString = Calendar.getInstance().time.toString()
@@ -221,6 +237,9 @@ class DrawingView(context: Context, attrs: AttributeSet) : View(context, attrs) 
             val saveDir = "$currentDirectory/$sampleName$dateString.json"
             val patternJson = mapper.writeValue(File(saveDir),pattern)
             println("saved file")
+            println(saveDir)
+            println(pattern.toggleButton1Info)
+            println(pattern.toggleButton2Info)
         } else {
             Toast.makeText(this.context, "Brak nazwy pliku!", Toast.LENGTH_SHORT).show()
         }
