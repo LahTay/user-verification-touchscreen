@@ -238,7 +238,6 @@ class GAN(tf.keras.Model):
             "d1_loss": self.d1_loss_tracker.result(),
             "g1_loss": self.g1_loss_tracker.result(),
         }
-
     def train_2(self,real_images,generator_input,batch_size):
         generated_images2 = self.generator2(generator_input)
 
@@ -370,6 +369,7 @@ if __name__ == '__main__':
     validation_split=0.0,
     max_queue_size=100,
     workers=4,
-    use_multiprocessing=False,
+    use_multiprocessing=True,
     callbacks=[saver()]
+
 )
