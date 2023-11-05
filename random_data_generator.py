@@ -1,8 +1,6 @@
 
 import numpy as np
 
-
-
 def generate(length):
     size = 972
     gen = np.random.default_rng(np.random.randint(0, size, 1))

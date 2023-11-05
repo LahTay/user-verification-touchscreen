@@ -27,7 +27,7 @@ def run_generations(operation, inputs, pool):
     return pool.map(operation, inputs)
 
 def random_data(num,x):
-    processes_pool = Pool(8)
+    processes_pool = Pool(6)
     inputs = np.ones(num).astype(int)*x
     out = run_generations(TS_option_for_preprocessing.generate, inputs, processes_pool)
     return out
@@ -123,8 +123,8 @@ def discriminator_1(x=32,y=32,z=3):
     model.add(layers.Dropout(0.3))
 
     model.add(layers.Flatten())
-    model.add(layers.Dense(100))
-    model.add(layers.Dense(1))
+    model.add(layers.Dense(100,activation = "tanh"))
+    model.add(layers.Dense(1,activation = "sigmoid"))
     model.summary()
     return model
 
@@ -152,8 +152,8 @@ def discriminator_2(x=128,y=128,z=3):
     model.add(layers.Dropout(0.3))
 
     model.add(layers.Flatten())
-    model.add(layers.Dense(100))
-    model.add(layers.Dense(1))
+    model.add(layers.Dense(100,activation = "tanh"))
+    model.add(layers.Dense(1,activation = "sigmoid"))
     model.summary()
     return model
 
@@ -192,8 +192,8 @@ class GAN(tf.keras.Model):
                 self.checkpoint2.restore(tf.train.latest_checkpoint(checkpoint_dir)).expect_partial()
             self.manager2 = tf.train.CheckpointManager(self.checkpoint2, checkpoint_dir, max_to_keep=3)
 
-    def compile(self, d_optimizer, g_optimizer, loss_fn):
-        super().compile()
+    def compile(self, d_optimizer, g_optimizer, loss_fn,steps_per_execution):
+        super().compile(steps_per_execution=steps_per_execution)
         self.d1_optimizer = d_optimizer
         self.g1_optimizer = g_optimizer
         self.d2_optimizer = d_optimizer
@@ -216,7 +216,7 @@ class GAN(tf.keras.Model):
         # Train the discriminator
         with tf.GradientTape() as tape:
             predictions = self.discriminator1(combined_images)
-            d_loss = self.loss_fn(labels, predictions)
+            d_loss = self.loss_fn(tf.cast(labels,tf.float32), tf.cast(predictions,tf.float32))
         grads = tape.gradient(d_loss, self.discriminator1.trainable_weights)
         self.d1_optimizer.apply_gradients(
             zip(grads, self.discriminator1.trainable_weights)
@@ -228,7 +228,7 @@ class GAN(tf.keras.Model):
         # Train the generator
         with tf.GradientTape() as tape:
             predictions = self.discriminator1(self.generator1(random_latent_vectors))
-            g_loss = self.loss_fn(misleading_labels, predictions)
+            g_loss = self.loss_fn(tf.cast(misleading_labels,tf.float32), tf.cast(predictions,tf.float32))
         grads = tape.gradient(g_loss, self.generator1.trainable_weights)
         self.g1_optimizer.apply_gradients(zip(grads, self.generator1.trainable_weights))
         # Update metrics and return their value.
@@ -253,7 +253,7 @@ class GAN(tf.keras.Model):
         # Train the discriminator
         with tf.GradientTape() as tape:
             predictions = self.discriminator2(combined_images)
-            d_loss = self.loss_fn(labels, predictions)
+            d_loss = self.loss_fn(tf.cast(labels,tf.float32), tf.cast(predictions,tf.float32))
         grads = tape.gradient(d_loss, self.discriminator2.trainable_weights)
         self.d2_optimizer.apply_gradients(
             zip(grads, self.discriminator2.trainable_weights)
@@ -264,7 +264,7 @@ class GAN(tf.keras.Model):
         # Train the generator
         with tf.GradientTape() as tape:
             predictions = self.discriminator2(self.generator2(generator_input))
-            g_loss = self.loss_fn(misleading_labels, predictions)
+            g_loss = self.loss_fn(tf.cast(misleading_labels,tf.float32), tf.cast(predictions,tf.float32))
         grads = tape.gradient(g_loss, self.generator2.trainable_weights)
         self.g2_optimizer.apply_gradients(zip(grads, self.generator2.trainable_weights))
         # Update metrics and return their value.
@@ -320,7 +320,7 @@ class GAN(tf.keras.Model):
             self.generate_and_save_images(self.generator2(self.generator1(seed)), epoch, "second_network")
         if self.mode == 2:
             self.generate_and_save_images(self.generator1(seed),epoch,"")
-            self.generate_and_save_images(self.generator2(self.generator1(seed)), epoch, "")
+            self.generate_and_save_images(self.generator2(self.generator1(seed)), epoch, "second_network")
         if self.mode == 3:
             self.generate_and_save_images(self.generator1(seed),epoch,"")
         if self.mode == 4:
@@ -341,35 +341,33 @@ if __name__ == '__main__':
     x=128
     y=x
     z=3
-    num_generated = 64
+    num_generated = 128
     num_elements = 2048
-    EPOCHS = 50
+    EPOCHS = 150
     noise_dim = 25
     num_examples_to_generate = 4
     save = True
     mode = 2
     load = False
-    train_images2 = random_data(num_generated,x)
+    train_images2 = tf.cast(random_data(num_generated,x),tf.float16)
     test = list(np.random.choice(num_generated,num_elements))
     train_images = []
     for i in test:
         train_images.append(train_images2[i])
     BUFFER_SIZE = num_elements
     BATCH_SIZE = 32
-
-    cross_entropy = tf.keras.losses.BinaryCrossentropy(from_logits=True)
+    cross_entropy = tf.nn.sigmoid_cross_entropy_with_logits
     generator_optimizer = tf.keras.optimizers.Adam(1e-4)
     discriminator_optimizer = tf.keras.optimizers.Adam(1e-4)
     train_images = np.array(train_images)
     downscaled_images = tf.cast(tf.image.resize(train_images, (int(x / 4), int(y / 4))), tf.float16)
     gan = GAN((x,y,z),noise_dim,load,save,mode)
-    gan.compile(discriminator_optimizer,generator_optimizer,cross_entropy)
+    gan.compile(discriminator_optimizer,generator_optimizer,cross_entropy,steps_per_execution=5)
     gan.fit(train_images,downscaled_images,batch_size=BATCH_SIZE,
     epochs=EPOCHS,
     validation_split=0.0,
     max_queue_size=100,
     workers=4,
     use_multiprocessing=True,
-    callbacks=[saver()]
-
+    callbacks=[saver()],verbose=1
 )

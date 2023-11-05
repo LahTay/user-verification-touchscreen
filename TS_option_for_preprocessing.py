@@ -3,6 +3,7 @@ from scipy.spatial.transform import Rotation as R
 import matplotlib.pyplot as plt
 import json
 import random_data_generator
+from timebudget import timebudget
 debug = False
 def open_file(file_name: str):
     data = []
@@ -64,15 +65,15 @@ def read_data(limit,filename=""):
         plt.show()
     XX=np.hstack(XX)
     XX = XX-np.min(XX)
-    #XX = XX / (np.max(XX) / (limit*4))
+    XX = XX / (np.max(XX) / (limit-1))
 
     YY=np.hstack(YY)
     YY = YY-np.min(YY)
-    #YY = YY / (np.max(YY) / (limit*4))
+    YY = YY / (np.max(YY) / (limit-1))
 
     ZZ=np.hstack(ZZ)
     ZZ = ZZ-np.min(ZZ)
-    ZZ = ZZ/(np.max(ZZ)/(limit))
+    ZZ = ZZ/(np.max(ZZ)/(limit-1))
     if debug:
         ax = plt.figure().add_subplot(projection='3d')
         ax.plot(XX,YY,ZZ)
@@ -132,9 +133,90 @@ def normalize2(X,Y,Z,sizelimit):
 
 def generate(i,filename=""):
     X, Y, Z = read_data(i,filename)
-    out = normalize2(X, Y, Z, i)
+    out = normalizehybrid(X, Y, Z, i)
     return out
 
+
+import numpy as np
+
+
+def normalizegpt(X, Y, Z, sizelimit):
+    # Ensure X, Y, Z are numpy arrays
+    X, Y, Z = np.mod(X, sizelimit).astype(int), np.mod(Y, sizelimit).astype(int), np.mod(Z, sizelimit).astype(int)
+
+    # Stack X, Y, Z into a single array
+    points = np.column_stack((X, Y, Z))
+
+    # Count unique points and create P0, P1, P2 arrays
+    unq, cnt = np.unique(points, axis=0, return_counts=True)
+    P0, P1, P2 = np.zeros((sizelimit, sizelimit)), np.zeros((sizelimit, sizelimit)), np.zeros((sizelimit, sizelimit))
+
+    P0[unq[:, 0], unq[:, 1]] = cnt
+    P1[unq[:, 2], unq[:, 1]] = cnt
+    P2[unq[:, 2], unq[:, 0]] = cnt
+
+    # Normalize P0, P1, P2
+    P0 /= np.max(P0)
+    P1 /= np.max(P1)
+    P2 /= np.max(P2)
+
+    # Stack P0, P1, P2 and swap axes
+    out = np.dstack((P0, P1, P2))
+
+    if debug:
+        import matplotlib.pyplot as plt
+        plt.imshow(out)
+        plt.show()
+
+    return out
+
+def normalizehybrid(X,Y,Z,sizelimit):
+    X = np.mod(X,sizelimit).astype(int)
+    Y = np.mod(Y,sizelimit).astype(int)
+    Z = np.mod(Z,sizelimit).astype(int)
+    points = np.vstack((X,Y,Z))
+    points = np.swapaxes(points, 0, 1)
+    P0 = np.zeros((sizelimit,sizelimit))
+    P1 = np.zeros((sizelimit, sizelimit))
+    P2 = np.zeros((sizelimit, sizelimit))
+    unq, cnt = np.unique(points, axis=0, return_counts=True)
+    P0[unq[:, 0], unq[:, 1]] = cnt
+    P1[unq[:, 2], unq[:, 1]] = cnt
+    P2[unq[:, 2], unq[:, 0]] = cnt
+    P2 = P2 / np.max(P2)
+    P1 = P1 / np.max(P1)
+    P0 = P0 / np.max(P0)
+    out = np.array((P0,P1,P2))
+    out = np.swapaxes(out, 0, 2)
+    if debug:
+        plt.imshow(out)
+        plt.show()
+    return out
+
+def slice(X,Y,Z,sizelimit):
+    X = X.astype(int)
+    Y = Y.astype(int)
+    Z = Z.astype(int)
+    points = np.vstack((X,Y,Z))
+    points = np.swapaxes(points, 0, 1)
+    P = np.zeros((sizelimit,sizelimit,sizelimit))
+    unq, cnt = np.unique(points, axis=0, return_counts=True)
+    P[unq[:, 0], unq[:, 1],unq[:,2]] = cnt
+    P = P / np.max(P)
+    r = R.from_euler('xyz', [0,0,36],degrees=True)
+    P0 = np.mean(P,1)
+    r.apply(P)
+    out = P
+    # out = np.array((P0,P1,P2))
+    # out = np.swapaxes(out, 0, 2)
+    # if debug:
+    #     plt.imshow(out)
+    #     plt.show()
+    return out
+# X, Y, Z = read_data(128)
+# slice(X,Y,Z,128)
+#
+# print(sum)
 # generate(128,"J.adamski.drawing1.real11.json")
 # generate(128,"J.adamski.drawing1.real2.json")
 # generate(128,"J.adamski.drawing1.real3.json")
