@@ -29,10 +29,10 @@ Czas na preprocessing.
 """
 def read_data(limit,filename=""):
 
-    #file_data = open_file(filename)
-    #
-    # print(file_data.keys())
-    file_data = random_data_generator.generate(np.random.randint(300,900))
+    if filename != "":
+        file_data = open_file(filename)
+    else:
+        file_data = random_data_generator.generate(np.random.randint(300,900))
     XX=[]
     YY=[]
     ZZ=[]
@@ -213,10 +213,9 @@ def slice(X,Y,Z,sizelimit):
     #     plt.imshow(out)
     #     plt.show()
     return out
-# X, Y, Z = read_data(128)
-# slice(X,Y,Z,128)
-#
-# print(sum)
+
+
+
 # generate(128,"J.adamski.drawing1.real11.json")
 # generate(128,"J.adamski.drawing1.real2.json")
 # generate(128,"J.adamski.drawing1.real3.json")

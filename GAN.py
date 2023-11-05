@@ -32,6 +32,18 @@ def random_data(num,x):
     out = run_generations(TS_option_for_preprocessing.generate, inputs, processes_pool)
     return out
 
+def load_from_files(size,directory): #ignores original/false and other parameters
+    if directory != "":
+        images = []
+        files = os.listdir(directory)
+        for path in files:
+            images.append(TS_option_for_preprocessing.generate(size, directory+"/"+path))
+        images = tf.cast(images,tf.float16)
+        return images
+    else:
+        return []
+
+
 def generator_1(x=32,y=32,z=3):
     model = tf.keras.Sequential()
     model.add(layers.InputLayer(noise_dim))
@@ -123,7 +135,7 @@ def discriminator_1(x=32,y=32,z=3):
     model.add(layers.Dropout(0.3))
 
     model.add(layers.Flatten())
-    model.add(layers.Dense(100,activation = "tanh"))
+    model.add(layers.Dense(100,activation = "relu"))
     model.add(layers.Dense(1,activation = "sigmoid"))
     model.summary()
     return model
@@ -152,7 +164,7 @@ def discriminator_2(x=128,y=128,z=3):
     model.add(layers.Dropout(0.3))
 
     model.add(layers.Flatten())
-    model.add(layers.Dense(100,activation = "tanh"))
+    model.add(layers.Dense(100,activation = "relu"))
     model.add(layers.Dense(1,activation = "sigmoid"))
     model.summary()
     return model
@@ -349,8 +361,10 @@ if __name__ == '__main__':
     save = True
     mode = 2
     load = False
+    images = load_from_files(x,"./przebiegi")
     train_images2 = tf.cast(random_data(num_generated,x),tf.float16)
-    test = list(np.random.choice(num_generated,num_elements))
+    train_images2 = np.vstack((images,train_images2))
+    test = list(np.random.choice(train_images2.shape[0],num_elements))
     train_images = []
     for i in test:
         train_images.append(train_images2[i])
