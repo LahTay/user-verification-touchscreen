@@ -3,8 +3,9 @@ from scipy.spatial.transform import Rotation as R
 import matplotlib.pyplot as plt
 import json
 import random_data_generator
+import os
 from timebudget import timebudget
-debug = False
+debug = True
 def open_file(file_name: str):
     data = []
     with open(file_name) as f:
@@ -27,6 +28,31 @@ gproperties - lista właściwości żyroskopu, kolejno [resolution, maxRange, mi
 Czas na preprocessing.
 
 """
+def random_from_directory(size,directory,amount): #ignores original/false and other parameters
+    if directory != "":
+        images = []
+        files = os.listdir(directory)
+        test = list(np.random.choice(len(files), amount))
+        files_chosen = []
+        for i in test:
+            files_chosen.append(files[i])
+        for path in files_chosen:
+            images.append(generate(size, directory+"/"+path))
+        return images
+    else:
+        return []
+
+def load_from_files(size,directory): #ignores original/false and other parameters
+    if directory != "":
+        images = []
+        files = os.listdir(directory)
+        for path in files:
+            images.append(generate(size, directory+"/"+path))
+        return images
+    else:
+        return []
+
+
 def read_data(limit,filename=""):
 
     if filename != "":
@@ -65,11 +91,11 @@ def read_data(limit,filename=""):
         plt.show()
     XX=np.hstack(XX)
     XX = XX-np.min(XX)
-    XX = XX / (np.max(XX) / (limit-1))
+    #XX = XX / (np.max(XX) / (limit-1))
 
     YY=np.hstack(YY)
     YY = YY-np.min(YY)
-    YY = YY / (np.max(YY) / (limit-1))
+    #YY = YY / (np.max(YY) / (limit-1))
 
     ZZ=np.hstack(ZZ)
     ZZ = ZZ-np.min(ZZ)
@@ -189,6 +215,12 @@ def normalizehybrid(X,Y,Z,sizelimit):
     out = np.array((P0,P1,P2))
     out = np.swapaxes(out, 0, 2)
     if debug:
+        plt.imshow(P0)
+        plt.show()
+        plt.imshow(P1)
+        plt.show()
+        plt.imshow(P2)
+        plt.show()
         plt.imshow(out)
         plt.show()
     return out
@@ -216,7 +248,5 @@ def slice(X,Y,Z,sizelimit):
 
 
 
-# generate(128,"J.adamski.drawing1.real11.json")
-# generate(128,"J.adamski.drawing1.real2.json")
-# generate(128,"J.adamski.drawing1.real3.json")
+random_from_directory(128,"./przebiegi",5)
 

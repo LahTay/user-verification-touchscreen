@@ -2,6 +2,9 @@
 import matplotlib.pyplot as plt
 import numpy as np
 import os
+
+import tensorflow_gan.python.losses.losses_impl
+
 import TS_option_for_preprocessing
 from tensorflow.keras import layers
 import tensorflow as tf
@@ -320,11 +323,18 @@ class GAN(tf.keras.Model):
 
         for i in range(predictions.shape[0]):
             plt.subplot(2, 2, i + 1)
-            plt.imshow(predictions[i, :, :, 0])
+            data = tf.cast(predictions[i, :, :, :],tf.float32)
+            data = tf.divide(
+                tf.subtract(data,tf.reduce_min(data)),
+                max(tf.subtract(tf.reduce_max(data),tf.reduce_min(data)),1e-5)
+            )
+            plt.imshow(data)
             plt.axis('off')
-        plt.savefig(f'image_at_epoch_{epoch}_{text}.png')
+        plt.show()
+        #plt.savefig(f'image_at_epoch_{epoch}_{text}.png')
         return predictions
-
+tensorflow_gan.python.losses.losses_impl.wasserstein_hinge_discriminator_loss()
+tensorflow_gan.python.losses.losses_impl.wasserstein_hinge_generator_loss
     def print_images(self,epoch):
         seed = tf.random.normal([num_examples_to_generate, noise_dim])
         if self.mode == 1:
@@ -359,29 +369,30 @@ if __name__ == '__main__':
     noise_dim = 25
     num_examples_to_generate = 4
     save = True
-    mode = 2
-    load = False
-    images = load_from_files(x,"./przebiegi")
-    train_images2 = tf.cast(random_data(num_generated,x),tf.float16)
-    train_images2 = np.vstack((images,train_images2))
-    test = list(np.random.choice(train_images2.shape[0],num_elements))
-    train_images = []
-    for i in test:
-        train_images.append(train_images2[i])
+    mode = 1
+    load = True
+    # images = load_from_files(x,"./przebiegi")
+    # train_images2 = tf.cast(random_data(num_generated,x),tf.float16)
+    # train_images2 = np.vstack((images,train_images2))
+    # test = list(np.random.choice(train_images2.shape[0],num_elements))
+    # train_images = []
+    # for i in test:
+    #     train_images.append(train_images2[i])
     BUFFER_SIZE = num_elements
     BATCH_SIZE = 32
     cross_entropy = tf.nn.sigmoid_cross_entropy_with_logits
     generator_optimizer = tf.keras.optimizers.Adam(1e-4)
     discriminator_optimizer = tf.keras.optimizers.Adam(1e-4)
-    train_images = np.array(train_images)
-    downscaled_images = tf.cast(tf.image.resize(train_images, (int(x / 4), int(y / 4))), tf.float16)
+    # train_images = np.array(train_images)
+    # downscaled_images = tf.cast(tf.image.resize(train_images, (int(x / 4), int(y / 4))), tf.float16)
     gan = GAN((x,y,z),noise_dim,load,save,mode)
     gan.compile(discriminator_optimizer,generator_optimizer,cross_entropy,steps_per_execution=5)
-    gan.fit(train_images,downscaled_images,batch_size=BATCH_SIZE,
-    epochs=EPOCHS,
-    validation_split=0.0,
-    max_queue_size=100,
-    workers=4,
-    use_multiprocessing=True,
-    callbacks=[saver()],verbose=1
-)
+    gan.print_images(0)
+#     gan.fit(train_images,downscaled_images,batch_size=BATCH_SIZE,
+#     epochs=EPOCHS,
+#     validation_split=0.0,
+#     max_queue_size=100,
+#     workers=4,
+#     use_multiprocessing=True,
+#     callbacks=[saver()],verbose=1
+# )
