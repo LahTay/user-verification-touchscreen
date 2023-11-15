@@ -1,22 +1,109 @@
-
 import matplotlib.pyplot as plt
 import numpy as np
 import os
-
-import tensorflow_gan.python.losses.losses_impl
-
-import TS_option_for_preprocessing
 from tensorflow.keras import layers
 import tensorflow as tf
 from timebudget import timebudget
-from multiprocessing import Pool
+from multiprocessing import Pool,cpu_count
+import TS_option_for_preprocessing
 
+print(cpu_count())
 #allows for computing using tensor cores
+
+
 tf.keras.mixed_precision.set_global_policy('mixed_float16')
+
+
+# class WeightNormalizedLayerWrapper(tf.keras.layers.Wrapper):
+#     def __init__(self, layer, **kwargs):
+#         super(WeightNormalizedLayerWrapper, self).__init__(layer, **kwargs)
+
+#     def build(self, input_shape):
+#         super(WeightNormalizedLayerWrapper, self).build(input_shape)
+
+#         # Retrieve the layer's weights after it has been built
+#         weights = self.layer.get_weights()
+
+#         if isinstance(self.layer, (tf.keras.layers.Conv2D, tf.keras.layers.Conv2DTranspose)):
+#             kernel_shape = weights[0].shape
+#             self.layer.kernel = self.layer.add_weight("kernel", shape=kernel_shape, initializer="glorot_uniform", trainable=True)
+#             output_size = self.compute_conv_output_shape(input_shape)
+#         elif isinstance(self.layer, tf.keras.layers.Dense):
+#             units = weights[0].shape[-1]
+#             self.layer.kernel = self.layer.add_weight("kernel", shape=(input_shape[-1], units), initializer="glorot_uniform", trainable=True)
+#             output_size = (units,)
+#         else:
+#             raise ValueError("Unsupported layer type: {}".format(type(self.layer)))
+
+#         self.layer.g = self.layer.add_weight("g", shape=(self.layer.kernel.shape[-1],), initializer="ones", trainable=True)
+
+#         # Set the output size dynamically based on layer type
+#         self.output_size = output_size
+
+#     def call(self, inputs, training=None, **kwargs):
+#         if isinstance(self.layer, (tf.keras.layers.Conv2D, tf.keras.layers.Conv2DTranspose)):
+#             normalized_weights = tf.nn.l2_normalize(self.layer.kernel, axis=(0, 1, 2))
+#         elif isinstance(self.layer, tf.keras.layers.Dense):
+#             normalized_weights = tf.nn.l2_normalize(self.layer.kernel, axis=0)
+#         else:
+#             raise ValueError("Unsupported layer type: {}".format(type(self.layer)))
+
+#         scaled_weights = self.layer.g * normalized_weights
+#         scaled_weights = tf.cast(scaled_weights, dtype=tf.float32)  # Cast to float32
+
+#         # Update the size of the kernel if it has changed
+#         if self.layer.kernel.shape != scaled_weights.shape:
+#             self.layer.kernel.assign(scaled_weights)
+#             self.layer.g.assign(tf.ones_like(scaled_weights[0]))
+
+#         return super(WeightNormalizedLayerWrapper, self).call(inputs, training=training, **kwargs)
+
+#     def compute_output_shape(self, input_shape):
+#         # Explicitly set the output shape based on the dynamically determined output_size
+#         return (input_shape[0],) + tuple(self.output_size)
+
+#     def compute_conv_output_shape(self, input_shape):
+#         # Compute the output shape for Conv2D and Conv2DTranspose layers
+#         dummy_input = tf.ones(shape=(1,) + tuple(input_shape[1:]), dtype=tf.float32)
+#         output_size = self.layer.compute_output_shape(dummy_input.shape)
+
+#         return tuple(output_size[1:])  # Exclude batch dimension
+
+#     def get_config(self):
+#         config = super().get_config().copy()
+#         return config
+
+
+@timebudget
+def load_from_files(size,directory): #ignores original/false and other parameters
+    if directory != "":
+        images = []
+        files = os.listdir(directory)
+        for path in files:
+            images.append(TS_option_for_preprocessing.generate(size, directory+"/"+path))
+        images = tf.cast(images,tf.float16)
+        return images
+    else:
+        return []
+
+
+@timebudget
+def load_from_files_gpu(size,directory): #ignores original/false and other parameters
+    if directory != "":
+        images = []
+        files = os.listdir(directory)
+        filenames = [directory+"/"+path for path in files]
+        images = TS_option_for_preprocessing.generategpu(size,filenames)
+        print(len(images))
+        images = tf.cast(images,tf.float16)
+        return images
+    else:
+        return []
+
 
 class saver(tf.keras.callbacks.Callback):
     def on_epoch_end(self, epoch, logs=None):
-        if epoch % 10 == 0:
+        if epoch % 10 == 0 and epoch > 1:
             if self.model.mode != 4:
                 if self.model.save:
                     save_path = self.model.manager1.save()
@@ -30,22 +117,10 @@ def run_generations(operation, inputs, pool):
     return pool.map(operation, inputs)
 
 def random_data(num,x):
-    processes_pool = Pool(6)
+    processes_pool = Pool(cpu_count())
     inputs = np.ones(num).astype(int)*x
     out = run_generations(TS_option_for_preprocessing.generate, inputs, processes_pool)
     return out
-
-def load_from_files(size,directory): #ignores original/false and other parameters
-    if directory != "":
-        images = []
-        files = os.listdir(directory)
-        for path in files:
-            images.append(TS_option_for_preprocessing.generate(size, directory+"/"+path))
-        images = tf.cast(images,tf.float16)
-        return images
-    else:
-        return []
-
 
 def generator_1(x=32,y=32,z=3):
     model = tf.keras.Sequential()
@@ -72,7 +147,7 @@ def generator_1(x=32,y=32,z=3):
     model.add(layers.BatchNormalization())
     model.add(layers.LeakyReLU())
 
-    model.add(layers.Conv2DTranspose(z, (5, 5), strides=(1, 1), padding='same', use_bias=False, activation='tanh'))
+    model.add(layers.Conv2DTranspose(z, (5, 5), strides=(1, 1), padding='same', use_bias=False, activation='sigmoid'))
     assert model.output_shape == (None, x, y, z)
     model.summary()
     return model
@@ -117,7 +192,7 @@ def generator_2(x=128,y=128,z=3):
     model.add(layers.BatchNormalization())
     model.add(layers.LeakyReLU())
 
-    model.add(layers.Conv2DTranspose(z, (5, 5), strides=(2, 2), padding='same', use_bias=False, activation='tanh'))
+    model.add(layers.Conv2DTranspose(z, (5, 5), strides=(2, 2), padding='same', use_bias=False, activation='sigmoid'))
     assert model.output_shape == (None, x, y, z)
     model.summary()
     return model
@@ -133,13 +208,13 @@ def discriminator_1(x=32,y=32,z=3):
     model.add(layers.LeakyReLU())
     model.add(layers.Dropout(0.3))
 
-    model.add(layers.Conv2D(32, (5, 5), strides=(2, 2), padding='same'))
+    model.add(layers.Conv2D(32, (5, 5), strides=(1, 1), padding='same'))
     model.add(layers.LeakyReLU())
     model.add(layers.Dropout(0.3))
 
     model.add(layers.Flatten())
-    model.add(layers.Dense(100,activation = "relu"))
-    model.add(layers.Dense(1,activation = "sigmoid"))
+    model.add(layers.Dense(100,activation='relu'))
+    model.add(layers.Dense(1))
     model.summary()
     return model
 
@@ -162,13 +237,13 @@ def discriminator_2(x=128,y=128,z=3):
     model.add(layers.LeakyReLU())
     model.add(layers.Dropout(0.3))
 
-    model.add(layers.Conv2D(32, (5, 5), strides=(2, 2), padding='same'))
+    model.add(layers.Conv2D(32, (5, 5), strides=(1, 1), padding='same'))
     model.add(layers.LeakyReLU())
     model.add(layers.Dropout(0.3))
 
     model.add(layers.Flatten())
-    model.add(layers.Dense(100,activation = "relu"))
-    model.add(layers.Dense(1,activation = "sigmoid"))
+    model.add(layers.Dense(100,activation='relu'))
+    model.add(layers.Dense(1))
     model.summary()
     return model
 
@@ -188,7 +263,7 @@ class GAN(tf.keras.Model):
         if self.mode != 4:
             self.discriminator1 = discriminator_1(int(self.x / 4), int(self.y / 4), self.z)
             self.generator1 = generator_1(int(self.x / 4), int(self.y / 4), self.z)
-            checkpoint_dir = './training_checkpoints_1'
+            checkpoint_dir = '/gan/training_checkpoints_1'
             self.checkpoint_prefix_1 = os.path.join(checkpoint_dir, "ckpt")
             self.checkpoint1 = tf.train.Checkpoint(generator1=self.generator1,
                                               discriminator1=self.discriminator1,step=tf.Variable(1),)
@@ -199,7 +274,7 @@ class GAN(tf.keras.Model):
         if self.mode != 3:
             self.discriminator2 = discriminator_2(self.x, self.y, self.z)
             self.generator2 = generator_2(self.x, self.y, self.z)
-            checkpoint_dir = './training_checkpoints_2'
+            checkpoint_dir = '/gan/training_checkpoints_2'
             self.checkpoint_prefix_2 = os.path.join(checkpoint_dir, "ckpt")
             self.checkpoint2 = tf.train.Checkpoint(generator2=self.generator2,
                                               discriminator2=self.discriminator2,step=tf.Variable(1),)
@@ -207,43 +282,95 @@ class GAN(tf.keras.Model):
                 self.checkpoint2.restore(tf.train.latest_checkpoint(checkpoint_dir)).expect_partial()
             self.manager2 = tf.train.CheckpointManager(self.checkpoint2, checkpoint_dir, max_to_keep=3)
 
-    def compile(self, d_optimizer, g_optimizer, loss_fn,steps_per_execution):
+    def compile(self, d_optimizer, g_optimizer, loss_fn,d_loss,g_loss,steps_per_execution):
         super().compile(steps_per_execution=steps_per_execution)
         self.d1_optimizer = d_optimizer
         self.g1_optimizer = g_optimizer
         self.d2_optimizer = d_optimizer
         self.g2_optimizer = g_optimizer
         self.loss_fn = loss_fn
+        self.loss_fn_d = d_loss
+        self.loss_fn_g = g_loss
+    @tf.function
+    def gradient_penalty(self, real_samples, fake_samples, discriminator):
 
-    def train_1(self,real_images,batch_size):
-        random_latent_vectors = tf.random.normal(shape=(batch_size, self.noise_dim))
+        # # Ensure consistency in data type
+        # real_samples = tf.cast(real_samples, tf.float16)
+        # fake_samples = tf.cast(fake_samples, tf.float16)
+
+        # Use random alpha values
+        alpha = tf.random.uniform(shape=[tf.shape(real_samples)[0], 1, 1, 1], minval=0.2, maxval=0.8, dtype=tf.float16)
+        interpolates = alpha * real_samples + (1 - alpha) * fake_samples
+        # Check for NaN values in the gradients
+        nan_mask = tf.math.is_nan(interpolates)
+        any_nan = tf.reduce_any(nan_mask)
+
+        if any_nan:
+            interpolates = tf.where(nan_mask, tf.zeros_like(interpolates, dtype=tf.float16), interpolates)
+
+        # Check for Inf values in the gradients
+        inf_mask = tf.math.is_inf(interpolates)
+        any_inf = tf.reduce_any(inf_mask)
+
+        if any_inf:
+            interpolates = tf.where(inf_mask, tf.constant(1, dtype=tf.float16), interpolates)
+
+        tf.debugging.check_numerics(interpolates, "interpolates check before penalty calculation")
+        with tf.GradientTape() as tape:
+            tape.watch(interpolates)
+            d_interpolates = discriminator(interpolates)
+        tf.debugging.check_numerics(d_interpolates, "d_interpolates check before penalty calculation")
+        # Check gradients for NaN or Inf
+        gradients = tape.gradient(d_interpolates, interpolates)
+        tf.debugging.check_numerics(gradients, "Gradients check before penalty calculation")
+
+        # Ensure gradients are not None before calculating slopes
+        if gradients is not None:
+            # Stabilize the denominator in slopes calculation
+            slopes = tf.sqrt(tf.reduce_sum(tf.square(gradients), axis=[1, 2, 3]) + 1e-8)
+            gradient_penalty = tf.reduce_mean((slopes - 1.0) ** 2)
+        else:
+            gradient_penalty = 0.0  # or handle the case when gradients are None
+        if gradient_penalty < 0 :
+          gradient_penalty = -gradient_penalty
+        return tf.cast(gradient_penalty,tf.float32)
+    def train_1(self,real_images,batch_size,random):
+        random_latent_vectors = random
 
         generated_images1 = self.generator1(random_latent_vectors)
         combined_images = tf.concat([generated_images1, real_images,], axis=0)
 
         # Assemble labels discriminating real from fake images
         labels = tf.concat(
-            [tf.ones((batch_size, 1)), tf.zeros((batch_size, 1))], axis=0
+            [tf.ones((batch_size, 1)), -tf.ones((batch_size, 1))], axis=0
         )
         # Add random noise to the labels
         labels += 0.05 * tf.random.uniform(tf.shape(labels))
 
-        # Train the discriminator
-        with tf.GradientTape() as tape:
-            predictions = self.discriminator1(combined_images)
-            d_loss = self.loss_fn(tf.cast(labels,tf.float32), tf.cast(predictions,tf.float32))
-        grads = tape.gradient(d_loss, self.discriminator1.trainable_weights)
-        self.d1_optimizer.apply_gradients(
-            zip(grads, self.discriminator1.trainable_weights)
-        )
-        random_latent_vectors = tf.random.normal(shape=(batch_size, self.noise_dim))
+        for _ in range(3):
+          # Train the discriminator
+          with tf.GradientTape() as tape:
+              predictions = self.discriminator1(combined_images)
+              tf.debugging.check_numerics(predictions, "Predictions d1 check before discriminator loss counting")
+              d_loss = self.loss_fn_d(tf.cast(labels,tf.float32), tf.cast(predictions,tf.float32))
+              # Compute and add gradient penalty
+              gp = self.gradient_penalty(real_images, generated_images1, self.discriminator1)
+              d_loss += 5 * gp
+          grads = tape.gradient(d_loss, self.discriminator1.trainable_weights)
+          self.d1_optimizer.apply_gradients(
+              zip(grads, self.discriminator1.trainable_weights)
+          )
+        #random_latent_vectors = tf.random.normal(shape=(batch_size, self.noise_dim))
 
-        misleading_labels = tf.zeros((batch_size, 1))
+        misleading_labels = -tf.ones((batch_size, 1))
 
         # Train the generator
         with tf.GradientTape() as tape:
-            predictions = self.discriminator1(self.generator1(random_latent_vectors))
-            g_loss = self.loss_fn(tf.cast(misleading_labels,tf.float32), tf.cast(predictions,tf.float32))
+            generated = self.generator1(random_latent_vectors)
+            tf.debugging.check_numerics(generated, "Generated 1 check before generator loss counting")
+            predictions = self.discriminator1(generated)
+            tf.debugging.check_numerics(predictions, "Predictions d1 check before generator loss counting")
+            g_loss = self.loss_fn_g(tf.cast(predictions,tf.float32))
         grads = tape.gradient(g_loss, self.generator1.trainable_weights)
         self.g1_optimizer.apply_gradients(zip(grads, self.generator1.trainable_weights))
         # Update metrics and return their value.
@@ -252,6 +379,7 @@ class GAN(tf.keras.Model):
         return {
             "d1_loss": self.d1_loss_tracker.result(),
             "g1_loss": self.g1_loss_tracker.result(),
+            "gp1": gp,
         }
     def train_2(self,real_images,generator_input,batch_size):
         generated_images2 = self.generator2(generator_input)
@@ -260,26 +388,34 @@ class GAN(tf.keras.Model):
 
         # Assemble labels discriminating real from fake images
         labels = tf.concat(
-            [tf.ones((batch_size, 1)), tf.zeros((batch_size, 1))], axis=0
+            [tf.ones((batch_size, 1)), -tf.ones((batch_size, 1))], axis=0
         )
         # Add random noise to the labels
         labels += 0.05 * tf.random.uniform(tf.shape(labels))
 
-        # Train the discriminator
-        with tf.GradientTape() as tape:
-            predictions = self.discriminator2(combined_images)
-            d_loss = self.loss_fn(tf.cast(labels,tf.float32), tf.cast(predictions,tf.float32))
-        grads = tape.gradient(d_loss, self.discriminator2.trainable_weights)
-        self.d2_optimizer.apply_gradients(
-            zip(grads, self.discriminator2.trainable_weights)
-        )
+        for _ in range(3):
+          # Train the discriminator
+          with tf.GradientTape() as tape:
+              predictions = self.discriminator2(combined_images)
+              tf.debugging.check_numerics(predictions, "Predictions d2 check before discriminator loss counting")
+              d_loss = self.loss_fn_d(tf.cast(labels,tf.float32), tf.cast(predictions,tf.float32))
+              # Compute and add gradient penalty
+              gp = self.gradient_penalty(real_images, generated_images2, self.discriminator2)
+              d_loss += 5 * gp
+          grads = tape.gradient(d_loss, self.discriminator2.trainable_weights)
+          self.d2_optimizer.apply_gradients(
+              zip(grads, self.discriminator2.trainable_weights)
+          )
 
         misleading_labels = tf.zeros((batch_size, 1))
 
         # Train the generator
         with tf.GradientTape() as tape:
-            predictions = self.discriminator2(self.generator2(generator_input))
-            g_loss = self.loss_fn(tf.cast(misleading_labels,tf.float32), tf.cast(predictions,tf.float32))
+            generated = self.generator2(generator_input)
+            tf.debugging.check_numerics(generated, "Generated 2 check before generator loss counting")
+            predictions = self.discriminator2(generated)
+            tf.debugging.check_numerics(predictions, "Predictions d2 check before generator loss counting")
+            g_loss = self.loss_fn_g(tf.cast(predictions,tf.float32))
         grads = tape.gradient(g_loss, self.generator2.trainable_weights)
         self.g2_optimizer.apply_gradients(zip(grads, self.generator2.trainable_weights))
         # Update metrics and return their value.
@@ -288,6 +424,7 @@ class GAN(tf.keras.Model):
         return {
             "d2_loss": self.d2_loss_tracker.result(),
             "g2_loss": self.g2_loss_tracker.result(),
+            "gp2": gp,
         }
 
     def train_step(self, data):
@@ -297,26 +434,41 @@ class GAN(tf.keras.Model):
         batch_size = tf.shape(real_images)[0]
         real_images=tf.cast(real_images,tf.float16)
         if self.mode == 1:
-            d1loss = self.train_1(downscaled_images,batch_size)
-            random_latent_vectors = tf.random.normal(shape=(batch_size, self.noise_dim))
-            gen_input = self.generator1(random_latent_vectors)
+            random = tf.random.normal(shape=(batch_size, self.noise_dim))
+            d1loss = self.train_1(downscaled_images,batch_size,random)
+            gen_input = self.generator1(random)
             d2loss = self.train_2(real_images,gen_input,batch_size)
             out = d1loss | d2loss
             return out
 
         if self.mode == 2:
-            d1loss = self.train_1(downscaled_images,batch_size)
+            random = tf.random.normal(shape=(batch_size, self.noise_dim))
+            d1loss = self.train_1(downscaled_images,batch_size,random)
             d2loss = self.train_2(real_images,downscaled_images,batch_size)
             out = d1loss | d2loss
             return out
 
         if self.mode == 3:
-            d1loss = self.train_1(downscaled_images,batch_size)
+            random = tf.random.normal(shape=(batch_size, self.noise_dim))
+            d1loss = self.train_1(downscaled_images,batch_size,random)
             return d1loss
 
         if self.mode == 4:
             d2loss,g2loss = self.train_2(real_images,downscaled_images,batch_size)
             return d2loss
+        # clip_const = 1
+        # if self.mode != 4:
+        #   for w in self.discriminator1.trainable_variables:
+        #     w.assign(tf.clip_by_value(w, -clip_const, clip_const))
+        # for w in self.generator1.trainable_variables:
+        #     w.assign(tf.clip_by_value(w, -clip_const, clip_const))
+
+        # if self.mode != 3:
+        #   for w in self.discriminator2.trainable_variables:
+        #     w.assign(tf.clip_by_value(w, -clip_const, clip_const))
+        # for w in self.generator2.trainable_variables:
+        #     w.assign(tf.clip_by_value(w, -clip_const, clip_const))
+
 
     def generate_and_save_images(self,images, epoch, text=""):
         predictions = images
@@ -330,11 +482,9 @@ class GAN(tf.keras.Model):
             )
             plt.imshow(data)
             plt.axis('off')
-        plt.show()
-        #plt.savefig(f'image_at_epoch_{epoch}_{text}.png')
+        plt.savefig(f'/gan/image_at_epoch_{epoch}_{text}.png')
         return predictions
-tensorflow_gan.python.losses.losses_impl.wasserstein_hinge_discriminator_loss()
-tensorflow_gan.python.losses.losses_impl.wasserstein_hinge_generator_loss
+
     def print_images(self,epoch):
         seed = tf.random.normal([num_examples_to_generate, noise_dim])
         if self.mode == 1:
@@ -348,11 +498,19 @@ tensorflow_gan.python.losses.losses_impl.wasserstein_hinge_generator_loss
         if self.mode == 4:
             self.generate_and_save_images(self.generator2(self.generator1(seed)), epoch, "second_network")
 
+
+def discriminator_loss(y_true, y_pred):
+ return -tf.keras.backend.mean(y_true * y_pred)
+
+def generator_loss(fake_img):
+    return tf.keras.backend.mean(fake_img)
+
+
 if __name__ == '__main__':
     """
     x = rozmiar kwadratu wyjściowego obrazu oraz rozmiar generowanych obrazów przez generator
     num_generated = ilość generowanych obrazów
-    num_elements = ilość wylosowanych elementów z wygenerowanych do datasetu
+    num_elements = ilość wylosowanych elementów z wygenerowanych do datasetu (2048 przy 2GB collab 4k i więcej działa)
     epochs = ilość epok uczenia
     noise dim = rozmiar wektora wejściowego do 1 sieci
     num examples to generate = ilosć generowanych obrazów do podglądu uczenia
@@ -363,36 +521,39 @@ if __name__ == '__main__':
     x=128
     y=x
     z=3
-    num_generated = 128
-    num_elements = 2048
-    EPOCHS = 150
+    num_generated = 1
+    num_elements = 4096
+    EPOCHS = 300
     noise_dim = 25
     num_examples_to_generate = 4
     save = True
-    mode = 1
-    load = True
-    # images = load_from_files(x,"./przebiegi")
-    # train_images2 = tf.cast(random_data(num_generated,x),tf.float16)
-    # train_images2 = np.vstack((images,train_images2))
-    # test = list(np.random.choice(train_images2.shape[0],num_elements))
-    # train_images = []
-    # for i in test:
-    #     train_images.append(train_images2[i])
+    mode = 2
+    load = False
+    images = load_from_files_gpu(x,"/gan/przebiegi")
+    #train_images2 = tf.cast(random_data(num_generated,x),tf.float16)
+    #train_images2 = np.vstack((images,train_images2))
+    train_images2 = images
+    test = list(np.random.choice(train_images2.shape[0],num_elements))
+    train_images = []
+    for i in test:
+        train_images.append(train_images2[i])
     BUFFER_SIZE = num_elements
     BATCH_SIZE = 32
     cross_entropy = tf.nn.sigmoid_cross_entropy_with_logits
-    generator_optimizer = tf.keras.optimizers.Adam(1e-4)
-    discriminator_optimizer = tf.keras.optimizers.Adam(1e-4)
-    # train_images = np.array(train_images)
-    # downscaled_images = tf.cast(tf.image.resize(train_images, (int(x / 4), int(y / 4))), tf.float16)
+
+    #generator_optimizer = tf.keras.optimizers.legacy.Adam(1e-4)
+    #discriminator_optimizer = tf.keras.optimizers.legacy.Adam(1e-4)
+    generator_optimizer = tf.keras.optimizers.legacy.RMSprop(1e-4)
+    discriminator_optimizer = tf.keras.optimizers.legacy.RMSprop(1e-5)
+    train_images = np.array(train_images)
+    downscaled_images = tf.cast(tf.image.resize(train_images, (int(x / 4), int(y / 4))), tf.float16)
     gan = GAN((x,y,z),noise_dim,load,save,mode)
-    gan.compile(discriminator_optimizer,generator_optimizer,cross_entropy,steps_per_execution=5)
-    gan.print_images(0)
-#     gan.fit(train_images,downscaled_images,batch_size=BATCH_SIZE,
-#     epochs=EPOCHS,
-#     validation_split=0.0,
-#     max_queue_size=100,
-#     workers=4,
-#     use_multiprocessing=True,
-#     callbacks=[saver()],verbose=1
-# )
+    gan.compile(discriminator_optimizer,generator_optimizer,cross_entropy,discriminator_loss,generator_loss,steps_per_execution='auto')
+    gan.fit(train_images,downscaled_images,batch_size=BATCH_SIZE,
+    epochs=EPOCHS,
+    validation_split=0.0,
+    max_queue_size=100,
+    workers=4,
+    use_multiprocessing=True,
+    callbacks=[saver()],verbose=1
+)

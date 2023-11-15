@@ -2,6 +2,8 @@ import numpy as np
 from scipy.spatial.transform import Rotation as R
 import matplotlib.pyplot as plt
 import json
+from timebudget import timebudget
+import cupy as cp
 import random_data_generator
 import os
 from timebudget import timebudget
@@ -157,13 +159,70 @@ def normalize2(X,Y,Z,sizelimit):
         plt.show()
     return out
 
+def normalizehybrid(X,Y,Z,sizelimit):
+    X = np.mod(X,sizelimit).astype(int)
+    Y = np.mod(Y,sizelimit).astype(int)
+    Z = np.mod(Z,sizelimit).astype(int)
+    points = np.vstack((X,Y,Z))
+    points = np.swapaxes(points, 0, 1)
+    P0 = np.zeros((sizelimit,sizelimit))
+    P1 = np.zeros((sizelimit, sizelimit))
+    P2 = np.zeros((sizelimit, sizelimit))
+    unq, cnt = np.unique(points, axis=0, return_counts=True)
+    P0[unq[:, 0], unq[:, 1]] = cnt
+    P1[unq[:, 2], unq[:, 1]] = cnt
+    P2[unq[:, 2], unq[:, 0]] = cnt
+    P2 = P2 / np.max(P2)
+    P1 = P1 / np.max(P1)
+    P0 = P0 / np.max(P0)
+    out = np.array((P0,P1,P2))
+    out = np.swapaxes(out, 0, 2)
+    # Check for NaN and Infinity values
+    nan_mask = np.isnan(out)
+    inf_mask = np.isinf(out)
+
+    # Replace NaN values with 0 and Infinity values with 1
+    out[nan_mask] = 0
+    out[inf_mask] = 1
+    if debug:
+        plt.imshow(out)
+        plt.show()
+    return out
+
+def normalizegpu(X, Y, Z, sizelimit, stream):
+    X = cp.mod(X,sizelimit).astype(int)
+    Y = cp.mod(Y,sizelimit).astype(int)
+    Z = cp.mod(Z,sizelimit).astype(int)
+    points = cp.vstack((X,Y,Z))
+    points = cp.swapaxes(points, 0, 1)
+    P0 = cp.zeros((sizelimit,sizelimit))
+    P1 = cp.zeros((sizelimit, sizelimit))
+    P2 = cp.zeros((sizelimit, sizelimit))
+    points_np = points.get()
+    unq, cnt = np.unique(points_np,axis=0, return_counts=True)
+    unq = cp.array(unq)
+    cnt = cp.array(cnt)
+    P0[unq[:, 0], unq[:, 1]] = cnt
+    P1[unq[:, 2], unq[:, 1]] = cnt
+    P2[unq[:, 2], unq[:, 0]] = cnt
+    P2 = P2 / cp.max(P2)
+    P1 = P1 / cp.max(P1)
+    P0 = P0 / cp.max(P0)
+    out = cp.array((P0,P1,P2))
+    out = cp.swapaxes(out, 0, 2)
+    # Check for NaN and Infinity values
+    nan_mask = cp.isnan(out)
+    inf_mask = cp.isinf(out)
+
+    # Replace NaN values with 0 and Infinity values with 1
+    out[nan_mask] = 0
+    out[inf_mask] = 1
+    return out
 def generate(i,filename=""):
     X, Y, Z = read_data(i,filename)
     out = normalizehybrid(X, Y, Z, i)
     return out
 
-
-import numpy as np
 
 
 def normalizegpt(X, Y, Z, sizelimit):
@@ -196,57 +255,35 @@ def normalizegpt(X, Y, Z, sizelimit):
 
     return out
 
-def normalizehybrid(X,Y,Z,sizelimit):
-    X = np.mod(X,sizelimit).astype(int)
-    Y = np.mod(Y,sizelimit).astype(int)
-    Z = np.mod(Z,sizelimit).astype(int)
-    points = np.vstack((X,Y,Z))
-    points = np.swapaxes(points, 0, 1)
-    P0 = np.zeros((sizelimit,sizelimit))
-    P1 = np.zeros((sizelimit, sizelimit))
-    P2 = np.zeros((sizelimit, sizelimit))
-    unq, cnt = np.unique(points, axis=0, return_counts=True)
-    P0[unq[:, 0], unq[:, 1]] = cnt
-    P1[unq[:, 2], unq[:, 1]] = cnt
-    P2[unq[:, 2], unq[:, 0]] = cnt
-    P2 = P2 / np.max(P2)
-    P1 = P1 / np.max(P1)
-    P0 = P0 / np.max(P0)
-    out = np.array((P0,P1,P2))
-    out = np.swapaxes(out, 0, 2)
-    if debug:
-        plt.imshow(P0)
-        plt.show()
-        plt.imshow(P1)
-        plt.show()
-        plt.imshow(P2)
-        plt.show()
-        plt.imshow(out)
-        plt.show()
-    return out
 
-def slice(X,Y,Z,sizelimit):
-    X = X.astype(int)
-    Y = Y.astype(int)
-    Z = Z.astype(int)
-    points = np.vstack((X,Y,Z))
-    points = np.swapaxes(points, 0, 1)
-    P = np.zeros((sizelimit,sizelimit,sizelimit))
-    unq, cnt = np.unique(points, axis=0, return_counts=True)
-    P[unq[:, 0], unq[:, 1],unq[:,2]] = cnt
-    P = P / np.max(P)
-    r = R.from_euler('xyz', [0,0,36],degrees=True)
-    P0 = np.mean(P,1)
-    r.apply(P)
-    out = P
-    # out = np.array((P0,P1,P2))
-    # out = np.swapaxes(out, 0, 2)
-    # if debug:
-    #     plt.imshow(out)
-    #     plt.show()
-    return out
+def apply_function_concurrently_on_gpu(X_list, Y_list, Z_list, i):
+    # Create a CUDA stream for each set of inputs
+    streams = [cp.cuda.Stream() for _ in X_list]
+    # Apply the function concurrently on the GPU using streams
+    results = []
+    for pinned_X_, pinned_Y_, pinned_Z_, stream in zip(X_list, Y_list, Z_list, streams):
+        with stream:
+            result = normalizegpu(pinned_X_, pinned_Y_, pinned_Z_, i, stream)
+            results.append(result)
 
+    # Synchronize the streams to ensure all operations are completed
+    for stream in streams:
+        stream.synchronize()
 
+    return results
 
-random_from_directory(128,"./przebiegi",5)
+def generategpu(i,filenames=[]):
+    # List comprehension to read data from files and process each element
+    arrays = [read_data(i,filename) for filename in filenames]
+    print("data loaded")
+    X_cp = [cp.array(X) for X, Y, Z in arrays]
+    Y_cp = [cp.array(Y) for X, Y, Z in arrays]
+    Z_cp = [cp.array(Z) for X, Y, Z in arrays]
+    results = apply_function_concurrently_on_gpu(X_cp,Y_cp,Z_cp,i)
+    #results = [normalizegpu(cp.array(X), cp.array(Y), cp.array(Z),i) for X, Y, Z in arrays]
+
+    results_cpu = [result.get() for result in results]
+    return results_cpu
+
+#random_from_directory(128,"./przebiegi",5)
 
