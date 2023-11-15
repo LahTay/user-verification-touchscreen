@@ -4,11 +4,11 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.*
 import android.util.AttributeSet
+import android.util.Log
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewConfiguration
-import android.widget.TextView
-import android.widget.Toast
+import android.widget.*
 import androidx.core.content.res.ResourcesCompat
 import kotlin.math.abs
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
@@ -27,7 +27,9 @@ data class PatternData(
     val x: ArrayList<Float>,
     val y: ArrayList<Float>,
     val time: ArrayList<Long>,
-    val rawTime: ArrayList<Long>
+    val rawTime: ArrayList<Long>,
+    val type: String,
+    val position: String
 )
 
 data class SensorProperties(
@@ -89,6 +91,9 @@ class DrawingView(context: Context, attrs: AttributeSet) : View(context, attrs) 
 
     private var elapsedTimeList = ArrayList<Long>()
     private var rawTimeList = ArrayList<Long>()
+
+    private var type = String()
+    private var position = String()
 
     var thisViewSize: Int = 0
 
@@ -168,6 +173,48 @@ class DrawingView(context: Context, attrs: AttributeSet) : View(context, attrs) 
         path.reset()
         changeDataText("Drawing: NO","#880808")
 
+        val radioGroup1 = this@DrawingView.rootView.findViewById<RadioGroup>(R.id.radioGroup1)
+        val radioButton1 = this@DrawingView.rootView.findViewById<RadioButton>(R.id.radioButton1)
+        val radioButton2 = this@DrawingView.rootView.findViewById<RadioButton>(R.id.radioButton2)
+
+        val radioGroup2 = this@DrawingView.rootView.findViewById<RadioGroup>(R.id.radioGroup2)
+        val radioButton3 = this@DrawingView.rootView.findViewById<RadioButton>(R.id.radioButton3)
+        val radioButton4 = this@DrawingView.rootView.findViewById<RadioButton>(R.id.radioButton4)
+        val radioButton5 = this@DrawingView.rootView.findViewById<RadioButton>(R.id.radioButton5)
+
+        if (radioButton1.isChecked) {
+            type = radioButton1.text.toString()
+            println("rb1")
+        } else if (radioButton2.isChecked) {
+            type = radioButton2.text.toString()
+            println("rb2")
+        } else {
+            type = "Corupted data"
+            println("error")
+        }
+
+        if (radioButton3.isChecked) {
+            position = radioButton3.text.toString()
+            println("rb3")
+        } else if (radioButton4.isChecked) {
+            position = radioButton4.text.toString()
+            println("rb4")
+        } else if (radioButton5.isChecked) {
+            position = radioButton5.text.toString()
+            println("rb5")
+        } else {
+            position = "Corupted data"
+            println("error")
+        }
+
+
+        println("XDD")
+        println(type)
+        println(position)
+
+
+
+
         // Write data
         val pattern = PatternData(
             thisViewSize,
@@ -178,7 +225,9 @@ class DrawingView(context: Context, attrs: AttributeSet) : View(context, attrs) 
             xDrawingData,
             yDrawingData,
             elapsedTimeList,
-            rawTimeList
+            rawTimeList,
+            type,
+            position
         )
 
         val dateString = Calendar.getInstance().time.toString()
@@ -187,6 +236,10 @@ class DrawingView(context: Context, attrs: AttributeSet) : View(context, attrs) 
         if (sampleName != "file name") {
             val saveDir = "$currentDirectory/$sampleName$dateString.json"
             val patternJson = mapper.writeValue(File(saveDir),pattern)
+            println("saved file")
+            println(saveDir)
+            println(pattern.type)
+            println(pattern.position)
         } else {
             Toast.makeText(this.context, "Brak nazwy pliku!", Toast.LENGTH_SHORT).show()
         }

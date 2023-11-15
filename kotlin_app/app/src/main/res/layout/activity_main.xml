@@ -12,9 +12,9 @@
         android:id="@+id/dataText"
         android:layout_width="0dp"
         android:layout_height="0dp"
+        android:gravity="center"
         android:text="Drawing: NO"
         android:textAlignment="center"
-        android:gravity="center"
         android:textColor="#880808"
         android:textSize="48sp"
         app:layout_constraintBottom_toTopOf="@+id/guidelineTop"
@@ -27,29 +27,34 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        app:layout_constraintGuide_percent="0.25" />
+        app:layout_constraintGuide_percent="0.2502806" />
 
     <androidx.constraintlayout.widget.Guideline
         android:id="@+id/guidelineBottom"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        app:layout_constraintGuide_percent="0.75" />
+        app:layout_constraintGuide_percent="0.74971944" />
 
     <EditText
         android:id="@+id/textFileName"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:autofillHints="text"
         android:ems="10"
+        android:gravity="center"
         android:inputType="textPersonName"
         android:minHeight="48dp"
         android:text="file name"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.497"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="@+id/guidelineBottom"
-        android:autofillHints="text"
+        app:layout_constraintVertical_bias="0.502"
         tools:ignore="LabelFor" />
+
+    <!-- android:layout_width="wrap_content" -->
 
     <org.userverification.touchscreen.DrawingView
         android:id="@+id/drawing_view"
@@ -57,17 +62,60 @@
         android:layout_height="731dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.5"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.456" />
 
-    <TextView
-        android:id="@+id/testView"
-        android:layout_width="195dp"
-        android:layout_height="30dp"
+    <RadioGroup
+        android:id="@+id/radioGroup1"
+        android:layout_width="100dp"
+        android:layout_height="80dp"
+        android:layout_marginBottom="4dp"
         app:layout_constraintBottom_toTopOf="@+id/textFileName"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="@+id/guidelineBottom"
-        tools:visibility="visible" />
+        app:layout_constraintEnd_toEndOf="@+id/textFileName">
+
+        <RadioButton
+            android:id="@+id/radioButton3"
+            android:layout_width="match_parent"
+            android:layout_height="22dp"
+            android:text="Still"
+            android:checked="true"/>
+
+        <RadioButton
+            android:id="@+id/radioButton4"
+            android:layout_width="match_parent"
+            android:layout_height="22dp"
+            android:text="Standing" />
+
+        <RadioButton
+            android:id="@+id/radioButton5"
+            android:layout_width="match_parent"
+            android:layout_height="22dp"
+            android:text="Lying" />
+    </RadioGroup>
+
+    <RadioGroup
+        android:id="@+id/radioGroup2"
+        android:layout_width="100dp"
+        android:layout_height="60dp"
+        android:layout_marginBottom="24dp"
+        app:layout_constraintBottom_toTopOf="@+id/textFileName"
+        app:layout_constraintStart_toStartOf="@+id/textFileName">
+
+        <RadioButton
+            android:id="@+id/radioButton1"
+            android:layout_width="85dp"
+            android:layout_height="22dp"
+            android:text="Fake" />
+
+        <RadioButton
+            android:id="@+id/radioButton2"
+            android:layout_width="85dp"
+            android:layout_height="22dp"
+            android:text="Original"
+            android:checked="true"/>
+    </RadioGroup>
+
 
 </androidx.constraintlayout.widget.ConstraintLayout>
