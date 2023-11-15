@@ -5,7 +5,7 @@ from tensorflow.keras import layers
 import tensorflow as tf
 from timebudget import timebudget
 from multiprocessing import Pool,cpu_count
-import TS_option_for_preprocessing
+import machine_learning.preprocessing as preprocessing
 
 print(cpu_count())
 #allows for computing using tensor cores
@@ -80,7 +80,7 @@ def load_from_files(size,directory): #ignores original/false and other parameter
         images = []
         files = os.listdir(directory)
         for path in files:
-            images.append(TS_option_for_preprocessing.generate(size, directory+"/"+path))
+            images.append(preprocessing.generate(size, directory+"/"+path))
         images = tf.cast(images,tf.float16)
         return images
     else:
@@ -91,9 +91,7 @@ def load_from_files(size,directory): #ignores original/false and other parameter
 def load_from_files_gpu(size,directory): #ignores original/false and other parameters
     if directory != "":
         images = []
-        files = os.listdir(directory)
-        filenames = [directory+"/"+path for path in files]
-        images = TS_option_for_preprocessing.generategpu(size,filenames)
+        images = preprocessing.generategpu(size,directory)
         print(len(images))
         images = tf.cast(images,tf.float16)
         return images
@@ -119,7 +117,7 @@ def run_generations(operation, inputs, pool):
 def random_data(num,x):
     processes_pool = Pool(cpu_count())
     inputs = np.ones(num).astype(int)*x
-    out = run_generations(TS_option_for_preprocessing.generate, inputs, processes_pool)
+    out = run_generations(preprocessing.generate, inputs, processes_pool)
     return out
 
 def generator_1(x=32,y=32,z=3):
