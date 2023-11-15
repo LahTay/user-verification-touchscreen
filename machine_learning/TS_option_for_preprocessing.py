@@ -2,11 +2,10 @@ import numpy as np
 from scipy.spatial.transform import Rotation as R
 import matplotlib.pyplot as plt
 import json
-from timebudget import timebudget
 import cupy as cp
 import random_data_generator
 import os
-from timebudget import timebudget
+
 debug = True
 def open_file(file_name: str):
     data = []
