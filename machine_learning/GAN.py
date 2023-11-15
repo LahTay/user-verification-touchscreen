@@ -75,25 +75,25 @@ tf.keras.mixed_precision.set_global_policy("mixed_float16")
 
 
 @timebudget
-def load_from_files(size,directory): #ignores original/false and other parameters
+def load_from_files(size, directory):  # ignores original/false and other parameters
     if directory != "":
         images = []
         files = os.listdir(directory)
         for path in files:
-            images.append(preprocessing.generate(size, directory+"/"+path))
-        images = tf.cast(images,tf.float16)
+            images.append(preprocessing.generate(size, directory + "/" + path))
+        images = tf.cast(images, tf.float16)
         return images
     else:
         return []
 
 
 @timebudget
-def load_from_files_gpu(size,directory): #ignores original/false and other parameters
+def load_from_files_gpu(size, directory):  # ignores original/false and other parameters
     if directory != "":
         images = []
-        images = preprocessing.generategpu(size,directory)
+        images = preprocessing.generategpu(size, directory)
         print(len(images))
-        images = tf.cast(images,tf.float16)
+        images = tf.cast(images, tf.float16)
         return images
     else:
         return []
