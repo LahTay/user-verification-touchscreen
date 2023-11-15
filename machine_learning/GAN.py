@@ -75,7 +75,7 @@ tf.keras.mixed_precision.set_global_policy("mixed_float16")
 
 
 @timebudget
-ef load_from_files(size,directory): #ignores original/false and other parameters
+def load_from_files(size,directory): #ignores original/false and other parameters
     if directory != "":
         images = []
         files = os.listdir(directory)
