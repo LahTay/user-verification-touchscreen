@@ -7,6 +7,8 @@ import random_data_generator
 import os
 
 debug = True
+
+
 def open_file(file_name: str):
     data = []
     with open(file_name) as f:
@@ -29,7 +31,11 @@ gproperties - lista właściwości żyroskopu, kolejno [resolution, maxRange, mi
 Czas na preprocessing.
 
 """
-def random_from_directory(size,directory,amount): #ignores original/false and other parameters
+
+
+def random_from_directory(
+    size, directory, amount
+):  # ignores original/false and other parameters
     if directory != "":
         images = []
         files = os.listdir(directory)
@@ -38,133 +44,141 @@ def random_from_directory(size,directory,amount): #ignores original/false and ot
         for i in test:
             files_chosen.append(files[i])
         for path in files_chosen:
-            images.append(generate(size, directory+"/"+path))
+            images.append(generate(size, directory + "/" + path))
         return images
     else:
         return []
 
-def load_from_files(size,directory): #ignores original/false and other parameters
+
+def load_from_files(size, directory):  # ignores original/false and other parameters
     if directory != "":
         images = []
         files = os.listdir(directory)
         for path in files:
-            images.append(generate(size, directory+"/"+path))
+            images.append(generate(size, directory + "/" + path))
         return images
     else:
         return []
 
 
-def read_data(limit,filename=""):
-
+def read_data(limit, filename=""):
     if filename != "":
         file_data = open_file(filename)
     else:
-        file_data = random_data_generator.generate(np.random.randint(300,900))
-    XX=[]
-    YY=[]
-    ZZ=[]
+        file_data = random_data_generator.generate(np.random.randint(300, 900))
+    XX = []
+    YY = []
+    ZZ = []
     # x = file_data['x']
     # y = file_data['y']
     # file_data['x'] = list(np.array(file_data['x'])-min(x))
     # file_data['y'] = list(np.array(file_data['y']) - min(y))
-    rot = np.array([0,0,0])
-    mov = np.array([0,0,0])
-    acc0 = np.array(file_data['acc'][0])
-    for i in range(1,len(file_data['x'])):
-        rot = rot + (file_data['time'][i]*(10**(-9)))**2*np.array(file_data['gyro'][i])/2
-        r = R.from_euler('xyz', rot)
-        mov = mov + (np.array(file_data['acc'][i])-r.apply(acc0))
-        movr = (file_data['time'][i]*(10**(-9)))**2*mov/2
-        X = file_data['x'][:i]
-        Y = file_data['y'][:i]
+    rot = np.array([0, 0, 0])
+    mov = np.array([0, 0, 0])
+    acc0 = np.array(file_data["acc"][0])
+    for i in range(1, len(file_data["x"])):
+        rot = (
+            rot
+            + (file_data["time"][i] * (10 ** (-9))) ** 2
+            * np.array(file_data["gyro"][i])
+            / 2
+        )
+        r = R.from_euler("xyz", rot)
+        mov = mov + (np.array(file_data["acc"][i]) - r.apply(acc0))
+        movr = (file_data["time"][i] * (10 ** (-9))) ** 2 * mov / 2
+        X = file_data["x"][:i]
+        Y = file_data["y"][:i]
         Z = np.zeros(i)
-        points = np.array([X,Y,Z]).transpose()
+        points = np.array([X, Y, Z]).transpose()
         pointsscipy = r.apply(points)
         points = pointsscipy.transpose()
-        points[0]=points[0]+movr[0]
+        points[0] = points[0] + movr[0]
         points[1] = points[1] + movr[1]
         points[2] = points[2] + movr[2]
         XX.append(points[0])
         YY.append(points[1])
         ZZ.append(points[2])
     if debug:
-        plt.plot(X,Y)
+        plt.plot(X, Y)
         plt.show()
-    XX=np.hstack(XX)
-    XX = XX-np.min(XX)
-    #XX = XX / (np.max(XX) / (limit-1))
+    XX = np.hstack(XX)
+    XX = XX - np.min(XX)
+    # XX = XX / (np.max(XX) / (limit-1))
 
-    YY=np.hstack(YY)
-    YY = YY-np.min(YY)
-    #YY = YY / (np.max(YY) / (limit-1))
+    YY = np.hstack(YY)
+    YY = YY - np.min(YY)
+    # YY = YY / (np.max(YY) / (limit-1))
 
-    ZZ=np.hstack(ZZ)
-    ZZ = ZZ-np.min(ZZ)
-    ZZ = ZZ/(np.max(ZZ)/(limit-1))
+    ZZ = np.hstack(ZZ)
+    ZZ = ZZ - np.min(ZZ)
+    ZZ = ZZ / (np.max(ZZ) / (limit - 1))
     if debug:
-        ax = plt.figure().add_subplot(projection='3d')
-        ax.plot(XX,YY,ZZ)
+        ax = plt.figure().add_subplot(projection="3d")
+        ax.plot(XX, YY, ZZ)
         plt.show()
-    return XX,YY,ZZ
+    return XX, YY, ZZ
 
-def normalize(X,Y,Z,sizelimit):
-    X = np.mod(X,sizelimit).astype(int)
-    Y = np.mod(Y,sizelimit).astype(int)
-    Z = np.mod(Z,sizelimit).astype(int)
-    points = np.vstack((X,Y,Z))
+
+def normalize(X, Y, Z, sizelimit):
+    X = np.mod(X, sizelimit).astype(int)
+    Y = np.mod(Y, sizelimit).astype(int)
+    Z = np.mod(Z, sizelimit).astype(int)
+    points = np.vstack((X, Y, Z))
     points = np.swapaxes(points, 0, 1)
-    P0 = np.zeros((sizelimit,sizelimit))
+    P0 = np.zeros((sizelimit, sizelimit))
     P1 = np.zeros((sizelimit, sizelimit))
     P2 = np.zeros((sizelimit, sizelimit))
     unq, cnt = np.unique(points, axis=0, return_counts=True)
-    for i,u in enumerate(unq):
-        P0[u[0],u[1]]=P0[u[0],u[1]]+cnt[i]
+    for i, u in enumerate(unq):
+        P0[u[0], u[1]] = P0[u[0], u[1]] + cnt[i]
         P1[u[1], u[2]] = P1[u[1], u[2]] + cnt[i]
         P2[u[0], u[2]] = P2[u[0], u[2]] + cnt[i]
     P2 = P2 / np.max(P2)
     P1 = P1 / np.max(P1)
     P0 = P0 / np.max(P0)
-    P3 = (P0+P1+P2)/3
+    P3 = (P0 + P1 + P2) / 3
 
-    P01 = np.hstack((P0,P1))
+    P01 = np.hstack((P0, P1))
     P23 = np.hstack((P2, P3))
-    out = np.vstack((P01,P23))
+    out = np.vstack((P01, P23))
     if debug:
         plt.pcolor(out)
         plt.show()
     return out
 
-def normalize2(X,Y,Z,sizelimit):
-    X = np.mod(X,sizelimit).astype(int)
-    Y = np.mod(Y,sizelimit).astype(int)
-    Z = np.mod(Z,sizelimit).astype(int)
-    points = np.vstack((X,Y,Z))
+
+def normalize2(X, Y, Z, sizelimit):
+    X = np.mod(X, sizelimit).astype(int)
+    Y = np.mod(Y, sizelimit).astype(int)
+    Z = np.mod(Z, sizelimit).astype(int)
+    points = np.vstack((X, Y, Z))
     points = np.swapaxes(points, 0, 1)
-    P0 = np.zeros((sizelimit,sizelimit))
+    P0 = np.zeros((sizelimit, sizelimit))
     P1 = np.zeros((sizelimit, sizelimit))
     P2 = np.zeros((sizelimit, sizelimit))
     unq, cnt = np.unique(points, axis=0, return_counts=True)
-    for i,u in enumerate(unq):
-        P0[u[0],u[1]]=P0[u[0],u[1]]+cnt[i]
+    for i, u in enumerate(unq):
+        P0[u[0], u[1]] = P0[u[0], u[1]] + cnt[i]
         P1[u[2], u[1]] = P1[u[2], u[1]] + cnt[i]
         P2[u[2], u[0]] = P2[u[2], u[0]] + cnt[i]
     P2 = P2 / np.max(P2)
     P1 = P1 / np.max(P1)
     P0 = P0 / np.max(P0)
-    out = np.array((P0,P1,P2))
+    out = np.array((P0, P1, P2))
     out = np.swapaxes(out, 0, 2)
     if debug:
         plt.imshow(out)
         plt.show()
     return out
 
-def normalizehybrid(X,Y,Z,sizelimit):
-    X = np.mod(X,sizelimit).astype(int)
-    Y = np.mod(Y,sizelimit).astype(int)
-    Z = np.mod(Z,sizelimit).astype(int)
-    points = np.vstack((X,Y,Z))
+
+def normalizehybrid(X, Y, Z, sizelimit):
+    X = np.mod(X, sizelimit).astype(int)
+    Y = np.mod(Y, sizelimit).astype(int)
+    Z = np.mod(Z, sizelimit).astype(int)
+    points = np.vstack((X, Y, Z))
     points = np.swapaxes(points, 0, 1)
-    P0 = np.zeros((sizelimit,sizelimit))
+    P0 = np.zeros((sizelimit, sizelimit))
     P1 = np.zeros((sizelimit, sizelimit))
     P2 = np.zeros((sizelimit, sizelimit))
     unq, cnt = np.unique(points, axis=0, return_counts=True)
@@ -174,7 +188,7 @@ def normalizehybrid(X,Y,Z,sizelimit):
     P2 = P2 / np.max(P2)
     P1 = P1 / np.max(P1)
     P0 = P0 / np.max(P0)
-    out = np.array((P0,P1,P2))
+    out = np.array((P0, P1, P2))
     out = np.swapaxes(out, 0, 2)
     # Check for NaN and Infinity values
     nan_mask = np.isnan(out)
@@ -188,17 +202,18 @@ def normalizehybrid(X,Y,Z,sizelimit):
         plt.show()
     return out
 
+
 def normalizegpu(X, Y, Z, sizelimit, stream):
-    X = cp.mod(X,sizelimit).astype(int)
-    Y = cp.mod(Y,sizelimit).astype(int)
-    Z = cp.mod(Z,sizelimit).astype(int)
-    points = cp.vstack((X,Y,Z))
+    X = cp.mod(X, sizelimit).astype(int)
+    Y = cp.mod(Y, sizelimit).astype(int)
+    Z = cp.mod(Z, sizelimit).astype(int)
+    points = cp.vstack((X, Y, Z))
     points = cp.swapaxes(points, 0, 1)
-    P0 = cp.zeros((sizelimit,sizelimit))
+    P0 = cp.zeros((sizelimit, sizelimit))
     P1 = cp.zeros((sizelimit, sizelimit))
     P2 = cp.zeros((sizelimit, sizelimit))
     points_np = points.get()
-    unq, cnt = np.unique(points_np,axis=0, return_counts=True)
+    unq, cnt = np.unique(points_np, axis=0, return_counts=True)
     unq = cp.array(unq)
     cnt = cp.array(cnt)
     P0[unq[:, 0], unq[:, 1]] = cnt
@@ -207,7 +222,7 @@ def normalizegpu(X, Y, Z, sizelimit, stream):
     P2 = P2 / cp.max(P2)
     P1 = P1 / cp.max(P1)
     P0 = P0 / cp.max(P0)
-    out = cp.array((P0,P1,P2))
+    out = cp.array((P0, P1, P2))
     out = cp.swapaxes(out, 0, 2)
     # Check for NaN and Infinity values
     nan_mask = cp.isnan(out)
@@ -217,23 +232,32 @@ def normalizegpu(X, Y, Z, sizelimit, stream):
     out[nan_mask] = 0
     out[inf_mask] = 1
     return out
-def generate(i,filename=""):
-    X, Y, Z = read_data(i,filename)
+
+
+def generate(i, filename=""):
+    X, Y, Z = read_data(i, filename)
     out = normalizehybrid(X, Y, Z, i)
     return out
 
 
-
 def normalizegpt(X, Y, Z, sizelimit):
     # Ensure X, Y, Z are numpy arrays
-    X, Y, Z = np.mod(X, sizelimit).astype(int), np.mod(Y, sizelimit).astype(int), np.mod(Z, sizelimit).astype(int)
+    X, Y, Z = (
+        np.mod(X, sizelimit).astype(int),
+        np.mod(Y, sizelimit).astype(int),
+        np.mod(Z, sizelimit).astype(int),
+    )
 
     # Stack X, Y, Z into a single array
     points = np.column_stack((X, Y, Z))
 
     # Count unique points and create P0, P1, P2 arrays
     unq, cnt = np.unique(points, axis=0, return_counts=True)
-    P0, P1, P2 = np.zeros((sizelimit, sizelimit)), np.zeros((sizelimit, sizelimit)), np.zeros((sizelimit, sizelimit))
+    P0, P1, P2 = (
+        np.zeros((sizelimit, sizelimit)),
+        np.zeros((sizelimit, sizelimit)),
+        np.zeros((sizelimit, sizelimit)),
+    )
 
     P0[unq[:, 0], unq[:, 1]] = cnt
     P1[unq[:, 2], unq[:, 1]] = cnt
@@ -249,6 +273,7 @@ def normalizegpt(X, Y, Z, sizelimit):
 
     if debug:
         import matplotlib.pyplot as plt
+
         plt.imshow(out)
         plt.show()
 
@@ -271,18 +296,19 @@ def apply_function_concurrently_on_gpu(X_list, Y_list, Z_list, i):
 
     return results
 
-def generategpu(i,filenames=[]):
+
+def generategpu(i, filenames=[]):
     # List comprehension to read data from files and process each element
-    arrays = [read_data(i,filename) for filename in filenames]
+    arrays = [read_data(i, filename) for filename in filenames]
     print("data loaded")
     X_cp = [cp.array(X) for X, Y, Z in arrays]
     Y_cp = [cp.array(Y) for X, Y, Z in arrays]
     Z_cp = [cp.array(Z) for X, Y, Z in arrays]
-    results = apply_function_concurrently_on_gpu(X_cp,Y_cp,Z_cp,i)
-    #results = [normalizegpu(cp.array(X), cp.array(Y), cp.array(Z),i) for X, Y, Z in arrays]
+    results = apply_function_concurrently_on_gpu(X_cp, Y_cp, Z_cp, i)
+    # results = [normalizegpu(cp.array(X), cp.array(Y), cp.array(Z),i) for X, Y, Z in arrays]
 
     results_cpu = [result.get() for result in results]
     return results_cpu
 
-#random_from_directory(128,"./przebiegi",5)
 
+# random_from_directory(128,"./przebiegi",5)
