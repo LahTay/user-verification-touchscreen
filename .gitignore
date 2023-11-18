@@ -131,3 +131,22 @@ dmypy.json
 
 # Android Studio
 kotlin_app/local.properties
+
+# Secrets file should not be added
+**/client_secrets.json
+
+# Don't add the data folder
+data/data/**
+
+# or any generated files while downloading data
+data/name_to_number.json
+data/processed_files.txt
+
+# Don't add tensorboard data
+**/tensorboard
+
+# Don't add generated pngs
+**/learningAPI/**/*.png
+
+# And also don't add logs
+**/logs
