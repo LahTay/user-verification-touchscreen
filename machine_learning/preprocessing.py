@@ -6,7 +6,7 @@ import cupy as cp
 import machine_learning.random_data_generator as random_data_generator
 import os
 
-debug = True
+debug = False
 
 
 def open_file(file_name: str):
@@ -116,7 +116,10 @@ def read_data(limit, filename=""):
         ax = plt.figure().add_subplot(projection="3d")
         ax.plot(XX, YY, ZZ)
         plt.show()
-    return XX, YY, ZZ
+
+    data = XX, YY, ZZ, file_data["type"], file_data["position"], filename
+
+    return data
 
 
 def normalize(X, Y, Z, sizelimit):
@@ -235,7 +238,7 @@ def normalizegpu(X, Y, Z, sizelimit, stream):
 
 
 def generate(i, filename=""):
-    X, Y, Z = read_data(i, filename)
+    X, Y, Z, _, _, _ = read_data(i, filename)
     out = normalizehybrid(X, Y, Z, i)
     return out
 
@@ -297,11 +300,13 @@ def apply_function_concurrently_on_gpu(X_list, Y_list, Z_list, image_size):
     return results
 
 
-def generategpu(image_size, directory):
+def generategpu(image_size, files):
     # List comprehension to read data from files and process each element
-    files = os.listdir(directory)
-    filenames = [directory + "/" + path for path in files]
-    arrays = [read_data(image_size, filename) for filename in filenames]
+    arrays = [read_data(image_size, filepath) for filepath in files]
+    # Splitting the array into 'position' (XX, YY, ZZ) and 'rest' (type, position, filename)
+    rest = [(type, pos, fname) for _, _, _, type, pos, fname in arrays]
+    arrays = [(XX, YY, ZZ) for XX, YY, ZZ, _, _, _ in arrays]
+
     print("data loaded")
     X_cp = [cp.array(X) for X, Y, Z in arrays]
     Y_cp = [cp.array(Y) for X, Y, Z in arrays]
@@ -310,7 +315,7 @@ def generategpu(image_size, directory):
     # results = [normalizegpu(cp.array(X), cp.array(Y), cp.array(Z),i) for X, Y, Z in arrays]
 
     results_cpu = [result.get() for result in results]
-    return results_cpu
+    return results_cpu, rest
 
 
 # random_from_directory(128,"./przebiegi",5)

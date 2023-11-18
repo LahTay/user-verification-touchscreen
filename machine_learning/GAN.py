@@ -2,10 +2,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 from tensorflow.keras import layers
+from tensorflow.keras.callbacks import TensorBoard
 import tensorflow as tf
 from timebudget import timebudget
 from multiprocessing import Pool, cpu_count
 import machine_learning.preprocessing as preprocessing
+import datetime
 
 print(cpu_count())
 # allows for computing using tensor cores
@@ -91,7 +93,8 @@ def load_from_files(size, directory):  # ignores original/false and other parame
 def load_from_files_gpu(size, directory):  # ignores original/false and other parameters
     if directory != "":
         images = []
-        images = preprocessing.generategpu(size, directory)
+        x, y, z, _, _, _ = preprocessing.generategpu(size, directory)
+        images = x, y, z
         print(len(images))
         images = tf.cast(images, tf.float16)
         return images
@@ -665,7 +668,7 @@ if __name__ == "__main__":
     save = True
     mode = 2
     load = False
-    images = load_from_files_gpu(x, "/gan/przebiegi")
+    images = load_from_files_gpu(x, "..\\data")
     # train_images2 = tf.cast(random_data(num_generated,x),tf.float16)
     # train_images2 = np.vstack((images,train_images2))
     train_images2 = images
@@ -685,6 +688,10 @@ if __name__ == "__main__":
     downscaled_images = tf.cast(
         tf.image.resize(train_images, (int(x / 4), int(y / 4))), tf.float16
     )
+
+    log_dir = "logs/fit/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+    tensorboard_callback = TensorBoard(log_dir=log_dir, histogram_freq=1)
+
     gan = GAN((x, y, z), noise_dim, load, save, mode)
     gan.compile(
         discriminator_optimizer,
@@ -692,7 +699,7 @@ if __name__ == "__main__":
         cross_entropy,
         discriminator_loss,
         generator_loss,
-        steps_per_execution="auto",
+        steps_per_execution=1,
     )
     gan.fit(
         train_images,
@@ -703,6 +710,6 @@ if __name__ == "__main__":
         max_queue_size=100,
         workers=4,
         use_multiprocessing=True,
-        callbacks=[saver()],
+        callbacks=[saver(), tensorboard_callback],
         verbose=1,
     )
