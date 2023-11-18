@@ -11,7 +11,7 @@ from collections import defaultdict
 from tensorflow.keras.models import Model
 from tensorflow.keras.layers import Input, Conv2D, MaxPooling2D, Flatten, Dense, Lambda
 from tensorflow.keras.utils import plot_model
-from tensorflow.keras.metrics import Recall, Precision, Metric
+from tensorflow.keras.metrics import Metric
 import tensorflow.keras.backend as K
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import f1_score, confusion_matrix, classification_report
@@ -425,8 +425,6 @@ def model_train(model: tf.keras.Model, data, callbacks, optimizer, loss, metrics
     return history
 
 
-
-import copy
 def main():
     print_info()
     parse_input()

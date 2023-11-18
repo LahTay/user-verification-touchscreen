@@ -1,7 +1,6 @@
 from pydrive.auth import GoogleAuth
 from pydrive.drive import GoogleDrive
 import os
-from pathlib import Path
 import json
 import uuid
 import re
