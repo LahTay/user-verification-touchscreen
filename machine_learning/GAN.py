@@ -638,11 +638,17 @@ class GAN(tf.keras.Model):
 
 
 def discriminator_loss(y_true, y_pred):
-    return -tf.keras.backend.mean(y_true * y_pred)
+    y_sgnm = tf.math.sign(y_pred)
+    loss_val = tf.math.sqrt(tf.keras.backend.mean((y_true - y_pred) ** 2))
+    loss_sgnm = -tf.keras.backend.mean(y_true * y_sgnm)
+    return loss_val + 2 * loss_sgnm
 
 
 def generator_loss(fake_img):
-    return tf.keras.backend.mean(fake_img)
+    y_sgnm = tf.math.sign(fake_img)
+    loss_val = tf.keras.backend.mean(fake_img)
+    loss_sgnm = tf.keras.backend.mean(y_sgnm)
+    return loss_val + 2 * loss_sgnm
 
 
 if __name__ == "__main__":
