@@ -92,9 +92,14 @@ def load_from_files(size, directory):  # ignores original/false and other parame
 @timebudget
 def load_from_files_gpu(size, directory):  # ignores original/false and other parameters
     if directory != "":
-        images = []
-        x, y, z, _, _, _ = preprocessing.generategpu(size, directory)
-        images = x, y, z
+        json_files = []
+        for root, dirs, files in os.walk(directory):
+            for file in files:
+                if file.endswith(".json"):
+                    absolute_path = os.path.abspath(os.path.join(root, file))
+                    json_files.append(absolute_path)
+        images, _, = preprocessing.generategpu(size, json_files)
+
         print(len(images))
         images = tf.cast(images, tf.float16)
         return images
@@ -674,7 +679,7 @@ if __name__ == "__main__":
     save = True
     mode = 2
     load = False
-    images = load_from_files_gpu(x, "..\\data")
+    images = load_from_files_gpu(x, "../data/data")
     # train_images2 = tf.cast(random_data(num_generated,x),tf.float16)
     # train_images2 = np.vstack((images,train_images2))
     train_images2 = images
