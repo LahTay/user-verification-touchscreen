@@ -13,7 +13,7 @@ print(cpu_count())
 # allows for computing using tensor cores
 
 
-tf.keras.mixed_precision.set_global_policy("mixed_float16")
+tf.keras.mixed_precision.set_global_policy("mixed_float32")
 
 
 # class WeightNormalizedLayerWrapper(tf.keras.layers.Wrapper):
@@ -83,7 +83,7 @@ def load_from_files(size, directory):  # ignores original/false and other parame
         files = os.listdir(directory)
         for path in files:
             images.append(preprocessing.generate(size, directory + "/" + path))
-        images = tf.cast(images, tf.float16)
+        images = tf.cast(images, tf.float32)
         return images
     else:
         return []
@@ -92,11 +92,19 @@ def load_from_files(size, directory):  # ignores original/false and other parame
 @timebudget
 def load_from_files_gpu(size, directory):  # ignores original/false and other parameters
     if directory != "":
-        images = []
-        x, y, z, _, _, _ = preprocessing.generategpu(size, directory)
-        images = x, y, z
+        json_files = []
+        for root, dirs, files in os.walk(directory):
+            for file in files:
+                if file.endswith(".json"):
+                    absolute_path = os.path.abspath(os.path.join(root, file))
+                    json_files.append(absolute_path)
+        (
+            images,
+            _,
+        ) = preprocessing.generategpu(size, json_files)
+
         print(len(images))
-        images = tf.cast(images, tf.float16)
+        images = tf.cast(images, tf.float32)
         return images
     else:
         return []
@@ -377,15 +385,15 @@ class GAN(tf.keras.Model):
     @tf.function
     def gradient_penalty(self, real_samples, fake_samples, discriminator):
         # # Ensure consistency in data type
-        # real_samples = tf.cast(real_samples, tf.float16)
-        # fake_samples = tf.cast(fake_samples, tf.float16)
+        # real_samples = tf.cast(real_samples, tf.float32)
+        # fake_samples = tf.cast(fake_samples, tf.float32)
 
         # Use random alpha values
         alpha = tf.random.uniform(
             shape=[tf.shape(real_samples)[0], 1, 1, 1],
             minval=0.2,
             maxval=0.8,
-            dtype=tf.float16,
+            dtype=tf.float32,
         )
         interpolates = alpha * real_samples + (1 - alpha) * fake_samples
         # Check for NaN values in the gradients
@@ -394,7 +402,7 @@ class GAN(tf.keras.Model):
 
         if any_nan:
             interpolates = tf.where(
-                nan_mask, tf.zeros_like(interpolates, dtype=tf.float16), interpolates
+                nan_mask, tf.zeros_like(interpolates, dtype=tf.float32), interpolates
             )
 
         # Check for Inf values in the gradients
@@ -403,7 +411,7 @@ class GAN(tf.keras.Model):
 
         if any_inf:
             interpolates = tf.where(
-                inf_mask, tf.constant(1, dtype=tf.float16), interpolates
+                inf_mask, tf.constant(1, dtype=tf.float32), interpolates
             )
 
         tf.debugging.check_numerics(
@@ -436,6 +444,10 @@ class GAN(tf.keras.Model):
         random_latent_vectors = random
 
         generated_images1 = self.generator1(random_latent_vectors)
+        tf.debugging.check_numerics(
+            generated_images1,
+            "Generated g1 check",
+        )
         combined_images = tf.concat(
             [
                 generated_images1,
@@ -565,7 +577,7 @@ class GAN(tf.keras.Model):
         if isinstance(real_images, tuple):
             real_images = real_images[0]
         batch_size = tf.shape(real_images)[0]
-        real_images = tf.cast(real_images, tf.float16)
+        real_images = tf.cast(real_images, tf.float32)
         if self.mode == 1:
             random = tf.random.normal(shape=(batch_size, self.noise_dim))
             d1loss = self.train_1(downscaled_images, batch_size, random)
@@ -638,11 +650,17 @@ class GAN(tf.keras.Model):
 
 
 def discriminator_loss(y_true, y_pred):
-    return -tf.keras.backend.mean(y_true * y_pred)
+    y_sgnm = tf.math.sign(y_pred)
+    loss_val = tf.math.sqrt(tf.keras.backend.mean((y_true - y_pred) ** 2))
+    loss_sgnm = -tf.keras.backend.mean(y_true * y_sgnm)
+    return loss_val + 2 * loss_sgnm
 
 
 def generator_loss(fake_img):
-    return tf.keras.backend.mean(fake_img)
+    y_sgnm = tf.math.sign(fake_img)
+    loss_val = tf.keras.backend.mean(fake_img)
+    loss_sgnm = tf.keras.backend.mean(y_sgnm)
+    return loss_val + 2 * loss_sgnm
 
 
 if __name__ == "__main__":
@@ -668,8 +686,8 @@ if __name__ == "__main__":
     save = True
     mode = 2
     load = False
-    images = load_from_files_gpu(x, "..\\data")
-    # train_images2 = tf.cast(random_data(num_generated,x),tf.float16)
+    images = load_from_files_gpu(x, "../data/data")
+    # train_images2 = tf.cast(random_data(num_generated,x),tf.float32)
     # train_images2 = np.vstack((images,train_images2))
     train_images2 = images
     test = list(np.random.choice(train_images2.shape[0], num_elements))
@@ -686,7 +704,7 @@ if __name__ == "__main__":
     discriminator_optimizer = tf.keras.optimizers.legacy.RMSprop(1e-5)
     train_images = np.array(train_images)
     downscaled_images = tf.cast(
-        tf.image.resize(train_images, (int(x / 4), int(y / 4))), tf.float16
+        tf.image.resize(train_images, (int(x / 4), int(y / 4))), tf.float32
     )
 
     log_dir = "logs/fit/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
