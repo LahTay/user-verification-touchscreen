@@ -98,7 +98,10 @@ def load_from_files_gpu(size, directory):  # ignores original/false and other pa
                 if file.endswith(".json"):
                     absolute_path = os.path.abspath(os.path.join(root, file))
                     json_files.append(absolute_path)
-        images, _, = preprocessing.generategpu(size, json_files)
+        (
+            images,
+            _,
+        ) = preprocessing.generategpu(size, json_files)
 
         print(len(images))
         images = tf.cast(images, tf.float32)
