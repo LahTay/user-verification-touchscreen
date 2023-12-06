@@ -93,7 +93,7 @@ def load_from_files(size, directory):  # ignores original/false and other parame
 def load_from_files_gpu(size, directory):  # ignores original/false and other parameters
     if directory != "":
         images = []
-        x,y, z, _, _, _ = preprocessing.generategpu(size, directory)
+        x, y, z, _, _, _ = preprocessing.generategpu(size, directory)
         images = x, y, z
         print(len(images))
         images = tf.cast(images, tf.float16)
@@ -691,7 +691,6 @@ if __name__ == "__main__":
 
     log_dir = "logs/fit/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
     tensorboard_callback = TensorBoard(log_dir=log_dir, histogram_freq=1)
-
 
     gan = GAN((x, y, z), noise_dim, load, save, mode)
     gan.compile(
