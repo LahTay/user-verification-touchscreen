@@ -1,9 +1,8 @@
 import tensorflow as tf
-from tensorflow.keras.models import Model, Sequential
+from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import LSTM, Dropout, Dense, Masking
-from tensorflow.keras.metrics import Precision, Recall, AUC
+from tensorflow.keras.metrics import Precision, AUC
 from tensorflow.keras.callbacks import Callback
-from machine_learning.preprocessing import read_data, open_file
 import os
 from matplotlib import pyplot as plt
 import json
